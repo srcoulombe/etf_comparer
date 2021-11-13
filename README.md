@@ -19,6 +19,13 @@ Data downloads are done using `requests`
 [x] - develop similarity matrix plotting
 [ ] - add tabs to streamlit app
     [ ] - requires replacing `matplotlib` with `bokeh`
-### Deployment
+[ ] - some minor refactoring
 [ ] - replace `TinyDB` with another document database
+[ ] - documentation
+[ ] - ability to scrape additional sources
+
+### Deployment
 [ ] - put on heroku
+
+### Extension
+What would be **REALLY** useful is the ability to return the `k` ETFs that are the most different from a collection of ETFs.
