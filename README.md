@@ -23,6 +23,9 @@ Data downloads are done using `requests`
 [ ] - replace `TinyDB` with another document database
 [ ] - documentation
 [ ] - ability to scrape additional sources
+[ ] - ability to track ETFs over time
+    [ ] - requires periodic scraping (like a cron-job)
+    [ ] - requires adjusting the database query to specify the time
 
 ### Deployment
 [ ] - put on heroku
