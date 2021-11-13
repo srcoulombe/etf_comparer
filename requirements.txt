@@ -1,0 +1,6 @@
+tinydb
+requests
+scipy
+matplotlib
+streamlit
+streamlit-tags

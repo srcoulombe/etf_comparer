@@ -13,7 +13,7 @@ Data downloads are done using `requests`
 ### Development
 [ ] - replace streamlit `text_area` with smaller input field
 [ ] - add description of what an ETF is and the business case for this app
-[ ] - add tags to input field
+[x] - add tags to input field
     [x] - adjust DatabaseClient to provide previously-seen tags
 [ ] - develop similarity matrix functionality
 [ ] - develop similarity matrix plotting

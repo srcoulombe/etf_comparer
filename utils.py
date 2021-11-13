@@ -147,7 +147,7 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]):
     etf_holding_weight_vectors = get_etf_holding_weight_vectors(query_output)
     fig, figax = plt.subplots(
         nrows = len(query_output)+1,
-        #figsize = (15, 10),
+        figsize = (8, 2*len(query_output)),
         sharex = True
     )
     colours = list(mcolors.TABLEAU_COLORS.values())
@@ -180,20 +180,17 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]):
     # Put a legend below current axis
     figax[~0].legend(
         loc = 'upper center', 
-        bbox_to_anchor = (0.5, -0.05),
+        bbox_to_anchor = (0.5, -0.25),
         fancybox = True, 
         shadow = True, 
-        ncol = 5
+        ncol = 10
     )
     for ax in figax:
         ax.set_alpha(0.0)
         ax.tick_params(axis='y', which='major', labelsize=8)
     figax[~0].set_xlabel("Holdings Ordered From Most -> Least Common")
-    # test all these
     plt.tight_layout()
     plt.margins(0,0)
-    plt.grid(b=True, which='major', axis='y')
-    
     return fig
 
 
