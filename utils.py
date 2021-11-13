@@ -4,6 +4,9 @@
 from typing import Mapping, List, Tuple, Callable, Union
 
 # external dependencies
+import numpy as np
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from scipy.spatial.distance import cosine, jaccard
@@ -193,4 +196,37 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]):
     plt.margins(0,0)
     return fig
 
-
+def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
+                    distance_measure: Union[str,Callable] = cosine):
+    
+    similarities = get_similarity(
+        query_output,
+        distance_measure = distance_measure
+    )
+    etf_names = sorted(
+        set(etf_name for etf_pair in similarities.keys() for etf_name in etf_pair)
+    )
+    df = pd.DataFrame(
+        np.ones((len(etf_names), len(etf_names))),
+        index = etf_names,
+        columns = etf_names
+    )
+    for (etf_1, etf_2), similarity in similarities.items():
+        df.loc[etf_1, etf_2] = round(similarity, 3)
+        df.loc[etf_2, etf_1] = round(similarity, 3)
+    
+    fig, ax = plt.subplots(figsize=(4,4))
+    sns.heatmap(
+        df, 
+        annot = True, 
+        cmap='Reds', 
+        ax = ax,
+        xticklabels = etf_names,
+        yticklabels = etf_names,
+        vmax = 1.,
+        vmin = 0,
+        fmt='.2%'
+    )
+    ax.tick_params(axis='both', which='both', labelsize=12, labelcolor='white')
+    plt.tight_layout()
+    return fig
