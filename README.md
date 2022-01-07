@@ -100,3 +100,15 @@ db schema
         
         holdings_table:
             holding_id
+
+## PLAN
+Gotta get this done ASAFP, so:
+1. push to github
+2. clone repo on t450
+3. add sqlite3 setup code
+4. test sqlite3
+5. modify etf4u
+    - needs to be run from cli (for eventual cron job)
+    - also needs to be run from python process
+    - needs to feed data to the db
+    - needs integration with zak source
