@@ -1,6 +1,9 @@
 tinydb
 requests
+numpy
+pandas
 scipy
 matplotlib
+seaborn
 streamlit
 streamlit-tags
