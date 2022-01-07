@@ -21,6 +21,9 @@ Data downloads are done using `requests`
     [ ] - requires replacing `matplotlib` with `bokeh`
 [ ] - some minor refactoring
 [ ] - replace `TinyDB` with another document database
+    [ ] - sqlite3
+    [ ] - postgres
+    [ ] - postgres + timescaledb
 [ ] - documentation
 [ ] - ability to scrape additional sources
 [ ] - ability to track ETFs over time
