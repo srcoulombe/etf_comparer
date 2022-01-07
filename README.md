@@ -88,3 +88,12 @@ db schema
         holdings_table:
             holding_id: int
             holding: str
+
+    indices:
+        etf_holdings_table:
+            row_id
+            date
+            etf_ticker
+        
+        holdings_table:
+            holding_id
