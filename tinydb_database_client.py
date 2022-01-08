@@ -17,10 +17,10 @@ class TinyDBDatabaseClient:
         # NOTE: caching this could be useful
         return [c['name'] for c in self.db.all()]
 
-    def query(  self,
-                etfs: Iterable[str],
-                date_: date = None,
-                headers: Mapping[str,str] = None) -> Mapping[str, Mapping[str, Mapping]]:
+    def get_holdings_and_weights_for_etfs(  self,
+                                            etfs: Iterable[str],
+                                            date_: date = None,
+                                            headers: Mapping[str,str] = None) -> Mapping[str, Mapping[str, Mapping]]:
         if date_ is None:
             date_ = datetime.now().date()
         if not isinstance(date_, date):
@@ -32,8 +32,7 @@ class TinyDBDatabaseClient:
             try:
                 data = self.query_(
                     etf,
-                    date_ = date_,
-                    headers = headers
+                    date_ = date_
                 )
                 etfs_holdings[etf] = data
             except Exception as e:
