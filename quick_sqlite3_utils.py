@@ -1,3 +1,7 @@
+# first draft at sqlite3 functionality
+# deprecated in favour of `sqlite3_database_client.py`
+# kept to show working out
+
 # standard library dependencies
 from datetime import datetime
 from typing import Union
