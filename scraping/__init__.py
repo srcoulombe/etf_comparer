@@ -8,7 +8,7 @@ from .ark_scraper import FUNDS as ark_etf_tickers
 from .ark_scraper import fetch as fetch_from_ark
 from .invesco_scraper import FUNDS as invesco_etf_tickers
 from .invesco_scraper import fetch as fetch_from_invesco
-from .zack_scraper import download_etf_holdings as fetch_from_zack
+from .zack_scraper import fetch as fetch_from_zack
 
 ishares_etf_tickers = [etf.lower() for etf in ishares_etf_tickers]
 ark_etf_tickers = [etf.lower() for etf in ark_etf_tickers]

@@ -5,8 +5,8 @@ from typing import Mapping, Union, List, Tuple
 # external dependencies
 import requests
 
-def download_etf_holdings(  etf: str,
-                            headers: Mapping[str,str] = None) -> Union[None, List[Tuple[str, float]]]:
+def fetch(  etf: str,
+            headers: Mapping[str,str] = None) -> Union[None, List[Tuple[str, float]]]:
     if headers is None:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
