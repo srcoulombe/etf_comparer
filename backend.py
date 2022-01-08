@@ -14,6 +14,9 @@ from tinydb import TinyDB, Query
 @lru_cache(maxsize = None)
 def download_etf_holdings(  etf: str,
                             headers: Mapping[str,str] = None) -> Union[None, List[str]]:
+    # NOTE: to convert this to a list of (holding, holding_weight) tuples, use:
+    # res = download_etf_holdings(...)
+    #  [(holding, holding_dict['weight']) for holding, holding_dict in res.items()]
     if headers is None:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
