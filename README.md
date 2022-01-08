@@ -107,6 +107,30 @@ Gotta get this done ASAFP, so:
 2. clone repo on t450
 3. add sqlite3 setup code
 4. test sqlite3
+   ok, here on 1/7/2022
+   still need to figure out the flow
+
+    on query-from-ui
+
+        1. get etf_id from etf_ticker table:
+            "SELECT ETF_ID from etf_ticker_table WHERE ETF_ticker = ?", (queried_etf: str, )
+
+        2. if etf_id is not in the etf_ticker table, run etf4u before moving onto step 3
+        
+        3. get all records pertaining to (today's date, etf_id)
+              
+        run "SELECT holdings_table.Holding, etf_holdings_table.Holding_Weight
+        FROM etf_holdings_table
+        WHERE etf_holdings_table.Date = TODAY AND etf_holdings_table.etf_ticker_ID = etf_id
+        INNER JOIN holdings_table ON Holding_ID
+        """
+
+
+
+        see https://stackoverflow.com/questions/23273242/multiple-where-clauses-in-sqlite3-python  
+
+
+
 5. modify etf4u
     - needs to be run from cli (for eventual cron job)
     - also needs to be run from python process
