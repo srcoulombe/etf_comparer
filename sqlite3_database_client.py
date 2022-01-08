@@ -8,7 +8,7 @@ from scraping import scrape_etf_holdings
 # import filepath from .yaml file  
 
 class SQLite3DatabaseClient:
-    def __init__(self, path_to_db: str) -> None:
+    def __init__(self, path_to_db: str = "etf.sqlite") -> None:
         self.__path_to_db = path_to_db
     
     def connect(self) -> sqlite3.Connection:
@@ -119,6 +119,10 @@ class SQLite3DatabaseClient:
         self.create_etf_ticker_table()
         self.create_etf_table()
 
+    def get_known_etfs(self) -> List[str]:
+        res = self.execute_query("SELECT ETF_ticker from etf_ticker_table")
+        return [ ticker for (ticker, ) in res ]
+
     def get_etf_id_for_ticker(  self, 
                                 etf_ticker: str) -> Union[None,int]:
         etf_ticker = etf_ticker.upper()
@@ -134,9 +138,7 @@ class SQLite3DatabaseClient:
         else:
             return etf_id
 
-    # todo: replace etf_id with etf_ticker, 
-    # trigger check beforehand
-    def get_holdings_for_etf_id(self, 
+    def get_holdings_for_etf(   self, 
                                 etf_ticker: int) -> List[Tuple[datetime.date, str, str, float]]:
         # a good test: datetime = today
         query = """SELECT major.Date, minor.ETF_ticker, other.Holding, major.Holding_Weight 
