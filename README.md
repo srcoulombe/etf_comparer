@@ -136,3 +136,5 @@ Gotta get this done ASAFP, so:
     - also needs to be run from python process
     - needs to feed data to the db
     - needs integration with zak source
+
+Another thing: exceptions when no internet
