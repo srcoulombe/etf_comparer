@@ -1,0 +1,20 @@
+from quick_sqlite3_utils import *
+from datetime import datetime 
+setup()
+connection = create_connection("etf.sqlite") 
+q = """INSERT INTO holdings_table (Holding) VALUES (?)"""
+connection.execute(q, ("ABC",))
+q = """INSERT INTO holdings_table (Holding) VALUES (?)"""
+connection.execute(q, ("DEF",))
+q = """INSERT INTO etf_ticker_table (ETF_ticker) VALUES (?)"""
+connection.execute(q, ("SPY",))
+q = """INSERT INTO etf_ticker_table (ETF_ticker) VALUES (?)"""
+connection.execute(q, ("QQQ",))
+q = '''INSERT INTO etf_holdings_table (Date, ETF_ticker_ID, Holding_ID, Holding_Weight) VALUES (?, ?, ?, ?)'''
+connection.execute(q, (datetime.now().date(), 1,1,3.0))
+connection.execute(q, (datetime.now().date(), 1,2,3.0))
+connection.execute(q, (datetime.now().date(), 2,2,10.0))
+connection.commit()
+
+connection.execute("SELECT * FROM etf_holdings_table").fetchall()
+connection.execute("SELECT * from etf_ticker_table").fetchall()
