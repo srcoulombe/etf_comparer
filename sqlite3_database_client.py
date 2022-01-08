@@ -138,8 +138,8 @@ class SQLite3DatabaseClient:
         else:
             return etf_id
 
-    def get_holdings_for_etf(   self, 
-                                etf_ticker: int) -> List[Tuple[datetime.date, str, str, float]]:
+    def get_holdings_and_weights_for_etf(   self, 
+                                            etf_ticker: str) -> List[Tuple[datetime.date, str, str, float]]:
         # a good test: datetime = today
         query = """SELECT major.Date, minor.ETF_ticker, other.Holding, major.Holding_Weight 
         FROM (
@@ -198,3 +198,15 @@ class SQLite3DatabaseClient:
             )
         
         return holdings
+    
+    def get_holdings_and_weights_for_etfs(  self, 
+                                            etf_tickers: List[str]) -> Mapping[str, Mapping[str, Mapping]]:
+        results: Mapping[str, Mapping[str, Mapping]] = dict()
+        for etf_ticker in etf_tickers:
+            etf_ticker_holdings: List[Tuple[datetime.date, str, str, float]] = self.get_holdings_and_weights_for_etf(etf_ticker)
+            results[etf_ticker] = {
+                holding_ticker: dict(weight=holding_weight)
+                for (date, etf_ticker_id, holding_ticker, holding_weight)
+                in etf_ticker_holdings
+            }
+        return results

@@ -8,14 +8,21 @@ import streamlit as st
 from streamlit_tags import st_tags
 
 # local dependencies
-from backend import DatabaseClient
+from backend import select_database
 from utils import plot_holdings_tracks, plot_similarity
 
-dbc = DatabaseClient()
 
 st.set_page_config(layout='centered')
 
 st.title('Comparing ETFs')
+
+backend_option = st.selectbox(
+    'Choose the database management system to use in the back end:',
+    ('TinyDB','SQLite3')
+)
+st.write('Using:', backend_option)
+
+dbc = select_database(backend_option)
 
 @st.cache 
 def clean_user_data(user_input: List[str]) -> List[str]:    
@@ -27,7 +34,7 @@ def clean_user_data(user_input: List[str]) -> List[str]:
 
 def run(user_input: str) -> None:
     print('Loading data...')
-    etfs_data = dbc.query(
+    etfs_data = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)
     )
     print('Loaded data.')
