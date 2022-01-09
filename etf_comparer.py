@@ -45,11 +45,11 @@ def run(user_input: str) -> None:
     col1, col2 = st.columns([5,5])
     with col1:
         st.markdown(
-            "<h4 style='text-align: center; color: white;'>Cosine Similarity</h4>", 
+            "<h4 style='text-align: center; color: white;'>Weighted Jaccard Similarity</h4>", 
             unsafe_allow_html = True
         )
         # plot the similarity matrix
-        fig = plot_similarity(etfs_data, distance_measure='cosine')
+        fig = plot_similarity(etfs_data, distance_measure='weighted_jaccard')
         buf = BytesIO()
         fig.savefig(buf, format="png", figsize=(4,4))
         st.image(buf)
