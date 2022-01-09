@@ -34,8 +34,10 @@ $ streamlit run etf_comparer.py
     [ ] - requires adjusting the database query to specify the time
 
 - still need to add datetime.now().date() versioning to tinydb
-- still need to replace cosine similarity with weighted jaccard
+- add button to download etfs' data
 - still need to add functionality for db rollbacks
+- still need to add functionality for mongodb and postgres on the back end
+  - will likely need to dev everything on local before pushing to gcp
 ### Deployment
 [ ] - put on heroku
 
