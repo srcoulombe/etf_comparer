@@ -32,10 +32,10 @@ $ streamlit run etf_comparer.py
 [ ] - ability to track ETFs over time
     [ ] - requires periodic scraping (like a cron-job)
     [ ] - requires adjusting the database query to specify the time
-[ ] - push to github
-    [ ] - pull on t450
-    [ ] - branch for archive
 
+- still need to add datetime.now().date() versioning to tinydb
+- still need to replace cosine similarity with weighted jaccard
+- still need to add functionality for db rollbacks
 ### Deployment
 [ ] - put on heroku
 
