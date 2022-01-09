@@ -97,7 +97,7 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
         }
         distance_measure = distance_measure_to_function[distance_measure]
         
-    assert distance_measure in (cosine, jaccard)
+    assert distance_measure in (cosine, jaccard, weighted_jaccard_distance)
     etfs_as_vectors = get_etf_holding_weight_vectors(
         query_output
     )
@@ -107,6 +107,7 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
     for i, etf1_name in enumerate(etf_names):
         for etf2_name in etf_names[i+1:]:
             if distance_measure is jaccard:
+                # need to map to booleans
                 similarities[(etf1_name, etf2_name)] = 1.0 - distance_measure(
                     list(map(bool, etfs_as_vectors[etf1_name])),
                     list(map(bool, etfs_as_vectors[etf2_name]))
