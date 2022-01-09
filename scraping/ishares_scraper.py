@@ -464,4 +464,5 @@ def fetch(  fund: str,
             result[ticker] = result.get(ticker, 0) + float(weight)
         except IndexError:
             break
+    return {holding: {'weight':weight} for holding, weight in result.items()}
     return [(holding, weight) for holding, weight in result.items()]

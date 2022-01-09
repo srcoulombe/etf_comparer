@@ -1,5 +1,5 @@
 # standard library dependencies
-from typing import List, Tuple
+from typing import List, Tuple, Mapping
 
 # local dependencies
 from .ishares_scraper import FUNDS as ishares_etf_tickers
@@ -14,7 +14,7 @@ ishares_etf_tickers = [etf.lower() for etf in ishares_etf_tickers]
 ark_etf_tickers = [etf.lower() for etf in ark_etf_tickers]
 invesco_etf_tickers = [etf.lower() for etf in invesco_etf_tickers]
 
-def scrape_etf_holdings(etf: str) -> List[Tuple[str, float]]:
+def scrape_etf_holdings(etf: str) -> Mapping[str, Mapping[str, float]]:
     etf = etf.lower()
     source = "zack"
     try:

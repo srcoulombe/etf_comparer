@@ -32,6 +32,6 @@ def fetch(  etf: str,
                 'weight': float(str_weight),
                 '52_week_change': float(str_52_week_change)
             }
-        etfs_holdings = [(holding, holding_dict['weight']) for holding, holding_dict in etfs_holdings.items()]
+        etfs_holdings = {holding:{'weight':holding_dict['weight']} for holding, holding_dict in etfs_holdings.items()}
     finally:
         return etfs_holdings
