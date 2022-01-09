@@ -6,6 +6,9 @@ Small streamlit app used to visualize the similarity between ETFs' holdings.
 LRU cache'd `TinyDB` database
 Data downloads are done using `requests`
 
+## To Run:
+$ streamlit run etf_comparer.py
+
 ## Frontend
 `Streamlit`
 

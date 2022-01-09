@@ -1,6 +1,7 @@
 from quick_sqlite3_utils import *
 from datetime import datetime 
 setup()
+
 connection = create_connection("etf.sqlite") 
 q = """INSERT INTO holdings_table (Holding) VALUES (?)"""
 connection.execute(q, ("ABC",))

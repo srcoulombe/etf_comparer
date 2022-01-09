@@ -156,35 +156,40 @@ class SQLite3DatabaseClient:
                 (etf_id, datetime.now().date())
             )
         except ValueError as no_current_data_for_etf:
-            etf_holdings = scrape_etf_holdings(etf_ticker)
-            self.execute_query(
-                "insert into etf_ticker_table (ETF_ticker) values (?)",
-                (etf_ticker,)
-            )
-            etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
-            holding_tickers = [(ticker,) for ticker, weight in etf_holdings]
+            etf_holdings: Mapping[str, Mapping[str, float]] = scrape_etf_holdings(etf_ticker)
+            assert len(etf_holdings) > 0
+            print(f"for etf {etf_ticker}, etf_holdings = {etf_holdings}")
+            #holding_tickers = [(ticker,) for ticker, weight in etf_holdings]
+            holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
             self.execute_query_over_many_arguments(
                 "insert or ignore into holdings_table (Holding) values (?)",
                 holding_tickers
             )
+
             # OK we can't use executemany for SELECT queries
             # holding_tickers_and_id = self.execute_query_over_many_arguments(
             #     "select * from holdings_table where Holding = (?)",
             #     holding_tickers
             # )
-            holding_tickers_and_id: List[Tuple[str, int]] = []
             for (holding_ticker, ) in holding_tickers:
                 holding_id = self.execute_query(
                     "select Holding_ID from holdings_table where Holding = ?",
                     (holding_ticker,)
                 )[0][0]
-                holding_tickers_and_id.append((holding_ticker, holding_id))
+                etf_holdings[holding_ticker]['holding_ticker_id'] = holding_id
             today = datetime.now().date()
+
+            self.execute_query(
+                "insert or ignore into etf_ticker_table (ETF_ticker) values (?)",
+                (etf_ticker,)
+            )
+            etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
+
             params = [
-                (today, etf_ticker_id, holding_id, holding_weight)
-                for (holding_ticker, holding_id), holding_weight in 
-                zip(holding_tickers_and_id, [weight for ticker, weight in etf_holdings]) 
+                (today, etf_ticker_id, holding_dict['holding_ticker_id'], holding_dict['weight'])
+                for holding_dict in etf_holdings.values()
             ]
+
             self.execute_query_over_many_arguments(
                 f"""insert into etf_holdings_table 
                 (Date, ETF_ticker_ID, Holding_ID, Holding_Weight)
