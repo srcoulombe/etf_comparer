@@ -1,7 +1,7 @@
 # utils.py
 
 # standard library dependencies
-from typing import Mapping, List, Tuple, Callable, Union
+from typing import Mapping, List, Tuple, Callable, Union, Iterable
 
 # external dependencies
 import numpy as np
@@ -81,13 +81,21 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
             etfs_as_vectors[etf][i] = etf_holding_percentage
     return etfs_as_vectors
 
+def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float:
+    return sum([min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])/sum([max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])
+
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                     distance_measure: Union[str,Callable] = cosine) -> Mapping[Tuple[str,str], float]:
     if isinstance(distance_measure, str):
         distance_measure = distance_measure.lower()
-        assert distance_measure in ('cosine','jaccard'), \
-            f"{distance_measure} is not among the supported distance measures ('cosine','jaccard')"
-        distance_measure = jaccard if distance_measure == 'jaccard' else cosine
+        assert distance_measure in ('cosine','jaccard','weighted_jaccard'), \
+            f"{distance_measure} is not among the supported distance measures ('cosine','jaccard', 'weighted_jaccard')"
+        distance_measure_to_function = {
+            'jaccard': jaccard,
+            'cosine': cosine,
+            'weighted_jaccard': weighted_jaccard_distance
+        }
+        distance_measure = distance_measure_to_function[distance_measure]
         
     assert distance_measure in (cosine, jaccard)
     etfs_as_vectors = get_etf_holding_weight_vectors(
