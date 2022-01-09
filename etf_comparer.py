@@ -35,7 +35,7 @@ def clean_user_data(user_input: List[str]) -> List[str]:
 def run(user_input: str) -> None:
     print('Loading data...')
     etfs_data = dbc.get_holdings_and_weights_for_etfs(
-        clean_user_data(user_input)
+        clean_user_data(user_input)[:10]
     )
     print('Loaded data.')
     print('Processing data...')
@@ -65,13 +65,13 @@ def run(user_input: str) -> None:
         st.image(buf)
 
     #st.pyplot(plot_similarity(etfs_data), figsize=(2,2), dpi=1000)
-st.subheader("Specify up to 20 ETFs to compare")
+st.subheader("Specify up to 10 ETFs to compare")
 
 with st.form(key='my_form'):
     user_input = st_tags(
         label = " Press ENTER to add an ETF ticker.",
         value = ["SPY", "QQQ", "DIA"],
-        maxtags = 20,
+        maxtags = 10,
         suggestions = dbc.get_known_etfs()
     )
     submit_button = st.form_submit_button(label='Launch')
