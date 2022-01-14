@@ -160,3 +160,4 @@ Still TODO:
         - https://davidefiocco.github.io/streamlit-fastapi-ml-serving/
         - https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml
 5. add diagrams explaining database stuff
+6. Vega-lite diagrams instead of matplotlib/seaborn?
