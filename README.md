@@ -147,3 +147,10 @@ Another thing: exceptions when no internet
 To view your application in the web browser run:
   $ gcloud app browse
 or visit: https://test-streamlit-app.ue.r.appspot.com
+
+Still TODO:
+
+1. adding a "show raw data" option 
+2. adding a "download raw data" option
+3. adding postgresql connection option
+4. adding cron scraping job option
