@@ -146,3 +146,4 @@ Another thing: exceptions when no internet
 
 To view your application in the web browser run:
   $ gcloud app browse
+or visit: https://test-streamlit-app.ue.r.appspot.com
