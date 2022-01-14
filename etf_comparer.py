@@ -9,7 +9,7 @@ from streamlit_tags import st_tags
 
 # local dependencies
 from src.backend import select_database
-from src.utils import plot_holdings_tracks, plot_similarity
+from src.plotting import plot_holdings_tracks, plot_similarity
 
 
 st.set_page_config(layout='centered')
@@ -34,6 +34,7 @@ def clean_user_data(user_input: List[str]) -> List[str]:
 
 def run(user_input: str) -> None:
     print('Loading data...')
+    print(user_input)
     etfs_data = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)[:10]
     )

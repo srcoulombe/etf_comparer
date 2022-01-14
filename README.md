@@ -150,7 +150,13 @@ or visit: https://test-streamlit-app.ue.r.appspot.com
 
 Still TODO:
 
+0. add logging functionality
 1. adding a "show raw data" option 
 2. adding a "download raw data" option
 3. adding postgresql connection option
 4. adding cron scraping job option
+    see the following:
+        - https://github.com/streamlit/streamlit/issues/439#issuecomment-1007204213
+        - https://davidefiocco.github.io/streamlit-fastapi-ml-serving/
+        - https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml
+5. add diagrams explaining database stuff
