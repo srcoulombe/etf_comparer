@@ -29,7 +29,7 @@ class SQLite3DatabaseClient:
             connection.execute("PRAGMA foreign_keys = 1")
             return connection
 
-    def execute_query(self, query: str, *args) -> list:
+    def execute_query(self, query: str, *args) -> List[Any]:
         connection = self.connect()
         try:
             cursor = connection.execute(query, *args)
@@ -147,7 +147,7 @@ class SQLite3DatabaseClient:
             and Date=?
         ) as major 
         INNER JOIN etf_ticker_table as minor on major.ETF_ticker_ID = minor.ETF_ticker_ID 
-        LEFT JOIN holdings_table as other on major.Holding_ID=other.Holding_ID
+        LEFT JOIN holdings_table as other on major.Holding_ID=other.Holding_ID;
         """
         try:
             etf_id = self.get_etf_id_for_ticker(etf_ticker)
