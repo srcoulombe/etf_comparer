@@ -8,4 +8,4 @@ run-container:
 	@docker run -p 8080:8080 etf_comparer.py
 
 gcloud-deploy:
-	@gcloud app deploy app.yaml
+	@gcloud app deploy app.yml
