@@ -10,47 +10,57 @@ from tinydb import TinyDB, Query
 from ..scraping import scrape_etf_holdings
 
 class TinyDBDatabaseClient:
+    """TinyDB database client.
+    """
     def __init__(self, db_path: str = "data/etf_tinydb.json"):
         self.db = TinyDB(db_path)
 
     @property
     def today(self) -> str:
+        """Returns today's date as a yyyy-mm-dd formatted string
+        (TinyDB does not support inserting of objects that aren't json-serializable)."""
         return str(datetime.now().date())
 
     def get_known_etfs(self) -> List[str]:
-        # NOTE: caching this could be useful
+        """Returns the list of known ETFs in the database."""
         return [c['name'] for c in self.db.all()]
-
-    def get_holdings_and_weights_for_etfs(  self,
-                                            etfs: Iterable[str],
-                                            date_: date = None) -> Mapping[str, Mapping[str, Mapping]]:
-        if date_ is None or not isinstance(date_, date):
-            date_ = self.today
-        
-        etfs = list(set(etfs))
-        etfs_holdings: Mapping[str, List[str]] = dict()
-        for etf in etfs:
-            assert isinstance(etf, str)
-            try:
-                data = self.query_(
-                    etf,
-                    date_ = date_
-                )
-                etfs_holdings[etf] = data
-            except Exception as e:
-                # log
-                print(e)
-        return {k:d for k,d in etfs_holdings.items() if len(d) > 0}
 
     @lru_cache(maxsize = None)
     def query_( self, 
-                etf_name: str, 
-                date_: date = None):
+                etf_name: str,
+                date_: str = None) -> Mapping[str, Mapping]:
+        """LRU-cached method to fetch holding and weights data for the 
+        ETF specified by the `etf_name` ticker from the TinyDB database. 
+        If no data for said ETF is present, this function will attempt to scrape
+        (see `..scraping.scrape_etf_holdings`) and insert it into the TinyDB database.
+
+        Parameters
+        ----------
+        etf_name : str
+            Ticker for the ETF of interest.
+        date_ : str, optional
+            `yyyy-mm-dd` formatted string representing the date of interest.
+            Defaults None, which gets replaced by today's date.
+        
+        Returns
+        -------
+        Mapping[str, Mapping]
+            Dictionary mapping the ETF's ticker (`etf_name`) to a dictionary
+            mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+            w.r.t. the ETF).
+        """
+        if date_ is None:
+            date_ = self.today
+        if datetime.strptime(date_, '%Y-%m-%d') > datetime.strptime(self.today, '%Y-%m-%d'):
+            raise ValueError(f"Unable to fetch data from {date_}; Functionality to look into the future is not supported yet.")
+            
         etf_holdings = self.db.search(
             (Query().name == str(etf_name)) \
-            & (Query().date == self.today)
+            & (Query().date == date_)
         )
         if len(etf_holdings) == 0:
+            if date_ != self.today:
+                raise ValueError(f"No data is available for {etf_name} on {date_}")
             try:
                 etf_holdings = scrape_etf_holdings(etf_name)
                 assert etf_holdings is not None
@@ -69,3 +79,44 @@ class TinyDBDatabaseClient:
                 f"found {len(etf_holdings)} records in the database for the etf {etf_name}"
             etf_holdings = etf_holdings[0]['holdings']
         return etf_holdings
+
+    def get_holdings_and_weights_for_etfs(  self,
+                                            etfs: Iterable[str],
+                                            date_: str = None) -> Mapping[str, Mapping[str, Mapping]]:
+        """Wrapper to execute `query_` over all ETF tickers provided in `etfs`. 
+
+        Parameters
+        ----------
+        etfs : Iterable[str]
+            Iterable of tickers for the ETFs of interest.
+        date_ : str, optional
+            `yyyy-mm-dd` formatted string representing the date of interest.
+            Defaults None, which gets replaced by today's date.
+
+        Returns
+        -------
+        Mapping[str, Mapping[str, Mapping]]
+            Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+            mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+            w.r.t. the ETF).
+        """
+        if date_ is None:
+            date_ = self.today
+        if datetime.strptime(date_, '%Y-%m-%d') > datetime.strptime(self.today, '%Y-%m-%d'):
+            raise ValueError(f"Unable to fetch data from {date_}; Functionality to look into the future is not supported yet.")
+        
+        etfs = list(set(etfs))
+        etfs_holdings: Mapping[str, List[str]] = dict()
+        for etf in etfs:
+            assert isinstance(etf, str)
+            try:
+                data = self.query_(
+                    etf,
+                    date_ = date_
+                )
+                etfs_holdings[etf] = data
+            except Exception as e:
+                # log
+                print(e)
+        return {k:d for k,d in etfs_holdings.items() if len(d) > 0}
+

@@ -1,59 +1,85 @@
 # utils.py
 
 # standard library dependencies
-from typing import Mapping, List, Tuple, Callable, Union, Iterable
+from typing import Mapping, List, Tuple, Callable, Union, Iterable, Any
 
 # external dependencies
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from scipy.spatial.distance import cosine, jaccard
 
-plt.style.use('classic')
-plt.rcParams.update({
-    "figure.facecolor": '#0e1117',  
-    "savefig.facecolor": '#0e1117',  
-    "figure.edgecolor": 'white',
-    "axes.facecolor": '#0e1117',  
-    "axes.edgecolor": "white",
-    "savefig.transparent": True,
-    "savefig.pad_inches": 0.0,
-    "grid.linestyle": "--",
-    "grid.alpha": 1.0,
-    'figure.autolayout': True,
-    'axes.xmargin': 0.0,
-    'axes.ymargin': 0.0,
-    'text.color': 'white',
-    'patch.edgecolor': 'white',
-    'axes.labelcolor': "white",
-    'ytick.color': "white",
-    'ytick.major.size': 1.0
-})
+# TODO: summary
+def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
+    """[summary]
 
-def get_boundaries(enumerable) -> List[int]:
+    Parameters
+    ----------
+    enumerable : Iterable[Any]
+        Some iterable whose items can be compared using
+        `==` and `!=`.
+
+    Returns
+    -------
+    List[int]
+        List of integers representing the indices in `enumerable`
+        where `enumerable[i] != enumerable[i+1]` (as well as indices for 
+        `0` and `len(enumerable)`)
+    """
     transitions = [ i+1 for i, (enumerable_at_i, enumerable_at_i_plus_one)
                     in enumerate(zip(enumerable[:-1], enumerable[1:]))
                     if enumerable_at_i != enumerable_at_i_plus_one ]
     return [0] + transitions + [len(enumerable)]
 
-def get_contiguous_truthy_segments(enumerable_) -> List[Tuple[int,int]]:
+# TODO: example, test, what if enumerable_ = [], [False], [True], [True,True], [False,False]
+def get_contiguous_truthy_segments(enumerable_: List[bool]) -> List[Tuple[int,int]]:
+    """Returns a list of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
+    of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
+
+    Parameters
+    ----------
+    enumerable_ : List[bool]
+        Iterable to process. Gets automatically converted to a List[bool] (not in-place).
+
+    Returns
+    -------
+    List[Tuple[int,int]]
+        List of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
+        of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
+    """
     enumerable = list(map(bool, enumerable_))
-    contigs = []
-    start = 0
-    while start < len(enumerable):
-        if enumerable[start] is False: 
-            start += 1
+    contigs: List[Tuple[int,int]] = []
+    inclusive_starting_index = 0
+    while inclusive_starting_index < len(enumerable):
+        if enumerable[inclusive_starting_index] is False: 
+            inclusive_starting_index += 1
         else:
-            stop_exc = start
+            stop_exc = inclusive_starting_index
             while stop_exc < len(enumerable) and enumerable[stop_exc]:
                 stop_exc += 1
-            contigs.append((start, stop_exc))
-            start = stop_exc
+            contigs.append((inclusive_starting_index, stop_exc))
+            inclusive_starting_index = stop_exc
     return contigs
 
 def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[str]:
+    """Convenience function used to get all the holding tickers
+    (strings) from the provided `query_output` dictionary.
+
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+
+    Returns
+    -------
+    List[str]
+        A list of all holdings in `query_output`.
+    
+    Notes
+    -----
+    The returned list does not contain any duplicates. 
+    """
     return sorted(set(
         [
             holding 
@@ -62,8 +88,32 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
         ]
     ))
 
+# TODO: example, test
 def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapping]],
                                     all_holdings: List[str] = None) -> Mapping[str, List[float]]:
+    """Converts the `query_output` dictionary to a dictionary mapping an ETF ticker (string)
+    to a list of floats indicating the weight of all relevant holdings for that ETF.
+
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+    all_holdings : List[str], optional
+        Optional list of all holdings to consider, by default None.
+        If kept as None, it gets converted to the output of `reorder_holdings_by_overlap`
+
+    Returns
+    -------
+    Mapping[str, List[float]]
+        Dictionary mapping an ETF's ticker (string) to a list of floats. 
+        Each position in the list of floats corresponds to a holding held by >= 1
+        ETF in `query_output`. The float at position `i` indicates the weight of the
+        `ith` holding in the corresponding ETF.
+    """
     if all_holdings is None:
         all_holdings = [holding for holding, annotation in 
                         reorder_holdings_by_overlap(query_output)]
@@ -81,11 +131,54 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
             etfs_as_vectors[etf][i] = etf_holding_percentage
     return etfs_as_vectors
 
+# TODO: example, tests
 def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float:
+    """Convenience function implementing the weighted Jaccard Distance metric.
+
+    Parameters
+    ----------
+    v1 : Iterable[float]
+        An iterable of floats.
+    v2 : Iterable[float]
+        An iterable of floats.
+
+    Returns
+    -------
+    float
+        The weighted Jaccard Distance between `v1` and `v2`
+
+    References
+    ----------
+    - https://en.wikipedia.org/wiki/Jaccard_index#Weighted_Jaccard_similarity_and_distance
+    """
     return sum([min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])/sum([max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])
 
+# TODO: example
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                     distance_measure: Union[str,Callable] = cosine) -> Mapping[Tuple[str,str], float]:
+    """Wrapper around the functions for the supported distance measures 
+    (Cosine Distance, Jaccard Distance, and weighted Jaccard Distance).
+
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+    distance_measure : Union[str,Callable], optional
+        Either the string indicating which distance metric to use 
+        (must be one of 'cosine','jaccard','weighted_jaccard'), or the function
+        itself. 
+        By default cosine
+
+    Returns
+    -------
+    Mapping[Tuple[str,str], float]
+        Dictionary mapping a tuple of strings (two ETF tickers) to their distance
+        (according to the chosen metric).
+    """
     if isinstance(distance_measure, str):
         distance_measure = distance_measure.lower()
         assert distance_measure in ('cosine','jaccard','weighted_jaccard'), \
@@ -119,9 +212,33 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                 )
     return similarities
 
+# TODO: test, example
 def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapping[str, str]:
+    """Returns a dictionary mapping each holding held by >= 1 ETF in `query_output`
+    to a string of length = `len(query_output)`. These strings (annotations) are comprised of 
+    `1`s and `0`s such that `annotations[i] == '1'` if the corresponding holding was held by
+    ETF `i` and `'0'` otherwise.
+
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+
+    Returns
+    -------
+    Mapping[str, str]
+        A dictionary mapping a holding ticker (string) to an annotation string
+        whose `ith` character indicates whether the `ith` ETF held the corresponding holding
+        (`'1'`) or not (`'0'`).
+    """
     all_holdings_with_annotations: Mapping[str, tuple] = dict()
+    # loop over all ETFs
     for i, (etf, etf_holdings_dict) in enumerate(query_output.items()):
+        # loop over each holding in the current ETF
         for holding in etf_holdings_dict.keys():
             current_annotation = all_holdings_with_annotations.get(
                 holding,
@@ -135,108 +252,13 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
         all_holdings_with_annotations.items()
     }
 
+# TODO: test, example
 def reorder_holdings_by_overlap(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
+    """Convenience wrapper around `annotate_holdings` that sorts its result such that
+    the holding tickers (strings) held by the most ETFs are first in the sequence."""
     return sorted(
         annotate_holdings(query_output).items(),
         key = lambda item: item[1],
         reverse = True
     )
 
-def plot_holding_track( etf_name: str, 
-                        holding_weight_vector: List[float], 
-                        color = 'white',
-                        ax = None):
-    if ax is None:
-        fig, ax = plt.subplots()
-    ax.bar(
-        list(range(len(holding_weight_vector))),
-        holding_weight_vector,
-        color = 'white'
-    )
-    ax.set_ylabel(f"% {etf_name}")
-
-def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]):
-    etf_holding_weight_vectors = get_etf_holding_weight_vectors(query_output)
-    fig, figax = plt.subplots(
-        nrows = len(query_output)+1,
-        figsize = (8, 2*len(query_output)),
-        sharex = True
-    )
-    
-    colours = list(mcolors.TABLEAU_COLORS.values())
-    for i, (etf_name, etf_holding_weight_vector) in enumerate(etf_holding_weight_vectors.items()):
-        plot_holding_track(
-            etf_name,
-            etf_holding_weight_vector,
-            ax = figax[i]
-        )
-
-        bottom = i / len(etf_holding_weight_vectors)
-        top = bottom + 1/len(etf_holding_weight_vectors)
-        boundaries = get_contiguous_truthy_segments([i > 0 for i in etf_holding_weight_vector])
-        
-        for j, (start_inc, stop_exc) in enumerate(boundaries):
-            figax[~0].axvspan(
-                start_inc, 
-                stop_exc, 
-                ymin = bottom,
-                ymax = top,
-                zorder = -1,
-                color = colours[i%len(colours)],
-                alpha = 0.75,
-                label = etf_name if j == 0 else None
-            )
-    figax[~0].set_ylabel("ETF Coverage")
-    figax[~0].set_yticks([])
-    figax[~0].set_xticks([])
-    
-    # Put a legend below current axis
-    figax[~0].legend(
-        loc = 'upper center', 
-        bbox_to_anchor = (0.5, -0.25),
-        fancybox = True, 
-        shadow = True, 
-        ncol = 10
-    )
-    for ax in figax:
-        ax.set_alpha(0.0)
-        ax.tick_params(axis='y', which='major', labelsize=8)
-    figax[~0].set_xlabel("Holdings Ordered From Most -> Least Common")
-    plt.tight_layout()
-    plt.margins(0,0)
-    return fig
-
-def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = cosine):
-    
-    similarities = get_similarity(
-        query_output,
-        distance_measure = distance_measure
-    )
-    etf_names = sorted(
-        set(etf_name for etf_pair in similarities.keys() for etf_name in etf_pair)
-    )
-    df = pd.DataFrame(
-        np.ones((len(etf_names), len(etf_names))),
-        index = etf_names,
-        columns = etf_names
-    )
-    for (etf_1, etf_2), similarity in similarities.items():
-        df.loc[etf_1, etf_2] = round(similarity, 3)
-        df.loc[etf_2, etf_1] = round(similarity, 3)
-    
-    fig, ax = plt.subplots(figsize=(4,4))
-    sns.heatmap(
-        df, 
-        annot = True, 
-        cmap='Reds', 
-        ax = ax,
-        xticklabels = etf_names,
-        yticklabels = etf_names,
-        vmax = 1.,
-        vmin = 0,
-        fmt='.2%'
-    )
-    ax.tick_params(axis='both', which='both', labelsize=12, labelcolor='white')
-    plt.tight_layout()
-    return fig

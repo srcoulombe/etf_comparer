@@ -15,6 +15,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
     
     @property
     def holdings_table_creation_query(self) -> str:
+        """SQLite3 query to create the `holdings_table` table"""
         return '''CREATE TABLE IF NOT EXISTS holdings_table(
             Holding_ID integer PRIMARY KEY,
             Holding varchar(255) unique
@@ -23,6 +24,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
 
     @property
     def etf_ticker_table_creation_query(self) -> str:
+        """SQLite3 query to create the `etf_ticker_table` table"""
         return '''CREATE TABLE IF NOT EXISTS etf_ticker_table(
             ETF_ticker_ID integer PRIMARY KEY,
             ETF_ticker varchar(255) unique
@@ -31,6 +33,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
 
     @property
     def etf_table_creation_query(self) -> str:
+        """SQLite3 query to create the `etf_holdings_table` table"""
         return '''CREATE TABLE IF NOT EXISTS etf_holdings_table(
             Row_ID integer PRIMARY KEY,
             Date DATE,

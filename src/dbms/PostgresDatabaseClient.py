@@ -16,6 +16,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
 
     @property
     def holdings_table_creation_query(self) -> str:
+        """Postgres query to create the `holdings_table` table"""
         return '''CREATE TABLE IF NOT EXISTS holdings_table(
             Holding_ID serial PRIMARY KEY,
             Holding varchar(255) unique
@@ -24,6 +25,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
 
     @property
     def etf_ticker_table_creation_query(self) -> str:
+        """Postgres query to create the `etf_ticker_table` table"""
         return '''CREATE TABLE IF NOT EXISTS etf_ticker_table(
             ETF_ticker_ID serial PRIMARY KEY,
             ETF_ticker varchar(255) unique
@@ -32,6 +34,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
 
     @property
     def etf_table_creation_query(self) -> str:
+        """Postgres query to create the `etf_holdings_table` table"""
         return '''CREATE TABLE IF NOT EXISTS etf_holdings_table(
             Row_ID serial PRIMARY KEY,
             Date DATE,
