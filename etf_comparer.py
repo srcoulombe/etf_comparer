@@ -8,8 +8,8 @@ import streamlit as st
 from streamlit_tags import st_tags
 
 # local dependencies
-from backend import select_database
-from utils import plot_holdings_tracks, plot_similarity
+from src.backend import select_database
+from src.utils import plot_holdings_tracks, plot_similarity
 
 
 st.set_page_config(layout='centered')
