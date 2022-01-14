@@ -143,3 +143,6 @@ Gotta get this done ASAFP, so:
     - needs integration with zak source
 
 Another thing: exceptions when no internet
+
+To view your application in the web browser run:
+  $ gcloud app browse
