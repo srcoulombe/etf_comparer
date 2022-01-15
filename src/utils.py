@@ -4,6 +4,7 @@
 from typing import Mapping, List, Tuple, Callable, Union, Iterable, Any
 
 # external dependencies
+import pandas as pd
 from scipy.spatial.distance import cosine, jaccard
 
 # TODO: summary
@@ -90,7 +91,8 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
 
 # TODO: example, test
 def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapping]],
-                                    all_holdings: List[str] = None) -> Mapping[str, List[float]]:
+                                    all_holdings: List[str] = None,
+                                    as_df: bool = False) -> Union[pd.DataFrame, Mapping[str, List[float]]]:
     """Converts the `query_output` dictionary to a dictionary mapping an ETF ticker (string)
     to a list of floats indicating the weight of all relevant holdings for that ETF.
 
@@ -108,7 +110,7 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
 
     Returns
     -------
-    Mapping[str, List[float]]
+    Union[pd.DataFrame, Mapping[str, List[float]]]
         Dictionary mapping an ETF's ticker (string) to a list of floats. 
         Each position in the list of floats corresponds to a holding held by >= 1
         ETF in `query_output`. The float at position `i` indicates the weight of the
@@ -129,6 +131,10 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
             except KeyError:
                 etf_holding_percentage = 0.0
             etfs_as_vectors[etf][i] = etf_holding_percentage
+    if as_df:
+        df = pd.DataFrame.from_dict(etfs_as_vectors)
+        df.index = all_holdings
+        return df
     return etfs_as_vectors
 
 # TODO: example, tests
