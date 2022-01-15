@@ -1,16 +1,24 @@
 
 # standard library dependencies
+import logging
+import logging.config
 from io import BytesIO
 from typing import List
 
 # external dependencies
+import numpy as np
+import pandas as pd
 import streamlit as st 
 from streamlit_tags import st_tags
 
 # local dependencies
 from src.backend import select_database
+from src.utils import get_etf_holding_weight_vectors
 from src.plotting import plot_holdings_tracks, plot_similarity
 
+logging.config.fileConfig("loggingConfig.yml")
+
+logging.info("Initiating Streamlit app")
 
 st.set_page_config(layout='centered')
 
@@ -24,6 +32,8 @@ st.write('Using:', backend_option)
 
 dbc = select_database(backend_option)
 
+logging.info(f"Connected to {backend_option} client instance")
+
 @st.cache 
 def clean_user_data(user_input: List[str]) -> List[str]:    
     return [
@@ -33,14 +43,19 @@ def clean_user_data(user_input: List[str]) -> List[str]:
     ]
 
 def run(user_input: str) -> None:
-    print('Loading data...')
-    print(user_input)
+    logging.info(f'Loading data for: {user_input}')
+
     etfs_data = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)[:10]
     )
-    print('Loaded data.')
-    print('Processing data...')
+    logging.info(f'Loaded data for: {user_input}')
+    logging.info(f'Processing data for: {user_input}')
+    
     st.pyplot(plot_holdings_tracks(etfs_data), dpi=1000)
+    
+    logging.info(f'Processed data for: {user_input}')
+
+    logging.info(f'Calculating similarities between: {user_input}')
 
     # plot the similarity matrices
     col1, col2 = st.columns([5,5])
@@ -52,7 +67,7 @@ def run(user_input: str) -> None:
         # plot the similarity matrix
         fig = plot_similarity(etfs_data, distance_measure='weighted_jaccard')
         buf = BytesIO()
-        fig.savefig(buf, format="png", figsize=(4,4))
+        fig.savefig(buf, format="png")#, figsize=(4,4))
         st.image(buf)
     with col2:
         st.markdown(
@@ -62,8 +77,28 @@ def run(user_input: str) -> None:
         # plot the similarity matrix
         fig = plot_similarity(etfs_data, distance_measure='jaccard')
         buf = BytesIO()
-        fig.savefig(buf, format="png", figsize=(4,4))
+        fig.savefig(buf, format="png")#, figsize=(4,4))
         st.image(buf)
+
+    logging.info(f'Calculated similarities between: {user_input}')
+    logging.info(f'Re-fetching data for: {user_input}')
+    data = get_etf_holding_weight_vectors(
+        etfs_data, 
+        as_df = True
+    )
+    logging.info(f'Re-fetched data for: {user_input}')
+    
+    st.subheader("Data")
+    with st.expander("Show Data"):
+        st.download_button(
+            "Press to Download",
+            data.to_csv().encode('utf-8'),
+            "file.csv",
+            "text/csv",
+            key='download-csv'
+        )
+        st.dataframe(data)
+        
 
     #st.pyplot(plot_similarity(etfs_data), figsize=(2,2), dpi=1000)
 st.subheader("Specify up to 10 ETFs to compare")
@@ -76,7 +111,6 @@ with st.form(key='my_form'):
         suggestions = dbc.get_known_etfs()
     )
     submit_button = st.form_submit_button(label='Launch')
-
 
 if submit_button:
     run(user_input)
