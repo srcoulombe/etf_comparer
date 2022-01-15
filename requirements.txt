@@ -7,3 +7,4 @@ matplotlib
 seaborn
 streamlit
 streamlit-tags
+fastapi
