@@ -150,9 +150,9 @@ or visit: https://test-streamlit-app.ue.r.appspot.com
 
 Still TODO:
 
-0. add logging functionality
-1. adding a "show raw data" option 
-2. adding a "download raw data" option
+0. add logging functionality < done jan 14th >
+1. adding a "show raw data" option < done on jan 13th >
+2. adding a "download raw data" option < done on jan 14th >
 3. adding postgresql connection option
 4. adding cron scraping job option
     see the following:
@@ -162,3 +162,10 @@ Still TODO:
 5. add diagrams explaining database stuff
 6. Vega-lite diagrams instead of matplotlib/seaborn?
 7. add tab explaining distance measures
+
+
+gcloud app deploy app.yml
+
+https://github.com/markdouthwaite/streamlit-project
+
+https://ruicosta.blog/2020/04/27/run-streamlit-io-on-google-cloud-kubernetes/

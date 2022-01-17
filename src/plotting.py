@@ -184,7 +184,8 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         yticklabels = etf_names,
         vmax = 1.,
         vmin = 0,
-        fmt='.1%'
+        fmt='.1%',
+        annot_kws={"size": 20 / np.sqrt(len(df))},
     )
     ax.tick_params(
         axis='both', 

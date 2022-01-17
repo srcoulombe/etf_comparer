@@ -24,15 +24,25 @@ st.set_page_config(layout='centered')
 
 st.title('Comparing ETFs')
 
-backend_option = st.selectbox(
-    'Choose the database management system to use in the back end:',
-    ('TinyDB','SQLite3')
-)
-st.write('Using:', backend_option)
-
+backend_option = "SQLite3"
+with st.expander("Pick Database Management System"):
+    backend_option = st.selectbox(
+        'Choose the database management system to use in the back end:',
+        ('TinyDB','SQLite3')
+    )
+    st.write('Using:', backend_option)
 dbc = select_database(backend_option)
-
 logging.info(f"Connected to {backend_option} client instance")
+
+with st.expander("What's an ETF?"):
+    st.markdown("""An Exchange-Traded Fund (ETF) is basically a variety-pack of other financial assets that you
+can purchase exactly as you purchase/invest in other stocks.
+    
+ETFs are often themed (i.e., they can be a collection of stocks from the same industry, location, etc..), 
+and some aim to track an index (e.g., the 'SPY' ETF aims to hold the same stocks listed in Standard & Poor's (S&P) 500 index).
+    
+ETFs have other advantages, such as allowing you to invest in assets that are otherwise difficult to access, 
+but **the main takeaway is that an ETF is a collection of assets (formally refered to as holdings) that are bundled together**.""")
 
 @st.cache 
 def clean_user_data(user_input: List[str]) -> List[str]:    
@@ -90,6 +100,7 @@ def run(user_input: str) -> None:
     
     st.subheader("Data")
     with st.expander("Show Data"):
+        st.markdown("""The following data indicates the weight given to each holding in the chosen ETFs.""")
         st.download_button(
             "Press to Download",
             data.to_csv().encode('utf-8'),
