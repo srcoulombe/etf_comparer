@@ -1,171 +1,58 @@
 # ETF Analyzer
 Small streamlit app used to visualize the similarity between ETFs' holdings.
 
+The app is now live on [Google Cloud Platform](https://test-streamlit-app.ue.r.appspot.com/)! Check it out there!
+
+# Quickstart
+0. Clone this repo using: `git clone https://github.com/srcoulombe/etf_comparer.git`
+1. Navigate into the repository's directory and create a virtual environment by using: `python3 -m venv etfcomparer_venv`
+2. Activate the virtual environment by using: `source etfcomparer_venv/bin/activate` if you're using MacOS/Linux or `.\etfcomparer_venv\Scripts\activate` if you're a Windows user.
+3. Install the dependencies into your virtual environment by using: `python3 -m pip install -r requirements.txt`
+4. Run the app by using: `streamlit run etf_comparer.py`
+
+
 # Architecture
-## Backend
-LRU cache'd `TinyDB` database
-Data downloads are done using `requests`
-
-## To Run:
-$ streamlit run etf_comparer.py
-
 ## Frontend
-`Streamlit`
+The frontend is built around `streamlit`, `streamlit-tags`, `matplotlib`, and `seaborn`.
 
-## TODO
-### Development
-[x] - replace streamlit `text_area` with smaller input field
-[ ] - add description of what an ETF is and the business case for this app
-[x] - add tags to input field
-    [x] - adjust DatabaseClient to provide previously-seen tags
-[x] - develop similarity matrix functionality
-[x] - develop similarity matrix plotting
-[ ] - add tabs to streamlit app
-    [ ] - requires replacing `matplotlib` with `bokeh`
-[ ] - some minor refactoring
-[ ] - replace `TinyDB` with another document database
-    [ ] - sqlite3
-    [ ] - postgres
-    [ ] - postgres + timescaledb
-[ ] - documentation
-[ ] - ability to scrape additional sources
-[ ] - ability to track ETFs over time
-    [ ] - requires periodic scraping (like a cron-job)
-    [ ] - requires adjusting the database query to specify the time
+## Backend
+The user can choose which database management system to use at runtime. The options are: `sqlite3` and `tinydb`. 
+I've chosen to use this project to compare and contrast the SQL and NoSQL approaches. 
+Future work will include the development and deployment of more production-ready databases (specifically `postgresql` and `mongodb`).
+Data scraping is done using the `requests` library. The constants (urls, integer IDs, etc...) for the Invesco, iShares, and ARK scrapers were obtained from [`etf4u`](https://github.com/leoncvlt/etf4u), but those scrapers were refactored. 
 
-- still need to add datetime.now().date() versioning to tinydb
-- add button to download etfs' data
-- still need to add functionality for db rollbacks
-- still need to add functionality for mongodb and postgres on the back end
-  - will likely need to dev everything on local before pushing to gcp
-### Deployment
-[ ] - put on heroku
+# TODO
+## Development
+- [ ] ability to scrape additional sources
+- [ ] ability to track ETFs over time
+    - [ ] requires periodic scraping (like a cron job). GCP and Heroku provide cron job services
+- [ ] add functionality for db rollbacks
+- [x] add functionality for `postgresql`
+- [ ] add functionality for `mongodb`
+- [ ] re-deploy with the new database management systems
+- [x] add logging functionality
+- [x] add a "show raw data" option
+- [x] add a "download raw data" option
+- [ ] add diagrams explaining database layouts
+- [ ] add tab explaining distance measures
 
-### Extension
+## Extension
 What would be **REALLY** useful is the ability to return the `k` ETFs that are the most different from a collection of ETFs.
 
-## Journal
-OSS like [yahooquery](https://yahooquery.dpguthrie.com/) provide similar yet incomplete functinoality; they only return the ETFs' top 10 holdings.
-
-Some other projects are interesting... https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjM2pP0jZv0AhUDHc0KHZjhBmMQFnoECAMQAQ&url=https%3A%2F%2Fmedium.com%2Fanalytics-vidhya%2Fdont-screen-etfs-pick-flowers-47aad109d1f9&usg=AOvVaw04Pu6mg9doCvmBtCXGGUpn
-
-investpy
-
-leoncvlt/etf4u on github
-
-on the topic of cronjobs on aws: https://www.freecodecamp.org/news/how-to-create-auto-updating-data-visualizations-in-python-with-matplotlib-and-aws/
-
-also found this: https://github.com/wilsonfreitas/awesome-quant#python
+# Journal
+OSS like [yahooquery](https://yahooquery.dpguthrie.com/) provide similar though restricted functionality: they only return the ETFs' top 10 holdings.
 
 
-Other tools do exist but either focus on 1-vs-1 comparisons (https://etfdb.com/tool/etf-comparison/IVV-SPY/#holdings, https://www.etfrc.com/funds/overlap.php, https://www.etf.com/etfanalytics/etf-comparison/, ). Other tools allow for more than a 1-vs-1 comparison (https://www.vanguardcanada.ca/individual/insights/fundcompare.htm#/target=fct&selectedFund0=F000011X31&selectedFund1=F00000NF6Q&selectedFund2=F00000NF6R&selectedFund3=F0000101Q1, https://research.tdameritrade.com/grid/public/etfs/compare/compareResults.asp?tab=Snapshot&data=B64ENCeyJzeW1ib2xTaW5nbGUiOiJTeW1ib2wuLi4iLCJzeW1ib2xNdWx0aXBsZSI6IlNQWSwgUVFRLCBJVlYiLCJjb21wYXJlZFRvIjoiRVRGIiwiY3VycmVudFBhZ2UiOiJjb21wYXJlLmFzcCIsInRhYiI6IlNuYXBzaG90IiwiZm9ybVdhc1VzZWQiOnRydWUsImNvbXBhcmVUeXBlIjoic3BlY2lmaWMifQ==) but dont do this kind of overlap or are behind login walls (https://www.fundvisualizer.com/how-to-compare/etfs/comparison-charts.html)
+I also found some other pertinent projects. [Some are... interesting](https://medium.com/analytics-vidhya/dont-screen-etfs-pick-flowers-47aad109d1f9) to say the least.
 
-Began using etf4u - something of a starting point, but needs more qork to be useful for this project
 
-## IDEA
-a query is a tuple of (etf_ticker: str, datetime)
-    runs db query
-    if comes up empty
-        run etf4u_mod on the etf_ticker
-        try to add to db
+Some projects like [`investpy`](https://investpy.readthedocs.io/) and the [GitHub repo `awesome-quant`](https://github.com/wilsonfreitas/awesome-quant#python) are more pertinent. I'll be looking into `investpy`'s ETF scraping capabilities to see what I could learn and use.
 
-db schema
-    etf_holdings_table
-    brainstormed schema:
-        row_id: int prim key
-        date: date
-        etf_ticker: str
-        holdings: List[str]
-        holding_weight: List[float]
-    
-    schema to statisfy 1NF:
-        row_id: int prim key
-        date: date
-        etf_ticker: str
-        holding: str
-        holding_weight: float
+Other tools do exist but focus on 1-vs-1 comparisons ([etfdb](https://etfdb.com/tool/etf-comparison/IVV-SPY/#holdings), [etfrc](https://www.etfrc.com/funds/overlap.php), [etfanalytics](https://www.etf.com/etfanalytics/etf-comparison/)). Other tools scale beyond head-to-head comparisons ([Vanguard's FundCompare](https://www.vanguardcanada.ca/individual/insights/fundcompare.htm), [TD Ameritrade](https://research.tdameritrade.com/grid/public/etfs/compare/compareResults.asp?)), but don't do this type of overlap analysis. Some tools like [fundvisualizer](https://www.fundvisualizer.com/how-to-compare/etfs/comparison-charts.html) might be relevant, but they are behind paywalls so I wasn't able to look into them very much.
 
-    schema to satisfy 1,2,3NF:
-        etf_holdings_table
-            row_id: int prim key
-            date: date
-            etf_ticker: str
-            holding_id: int
-            holding_weight: int
-
-        holdings_table:
-            holding_id: int
-            holding: str
-
-    indices:
-        etf_holdings_table:
-            row_id
-            date
-            etf_ticker
-        
-        holdings_table:
-            holding_id
-
-## PLAN
-Gotta get this done ASAFP, so:
-1. push to github
-2. clone repo on t450
-3. add sqlite3 setup code
-4. test sqlite3
-   ok, here on 1/7/2022
-   still need to figure out the flow
-
-    on query-from-ui
-
-        1. get etf_id from etf_ticker table:
-            "SELECT ETF_ID from etf_ticker_table WHERE ETF_ticker = ?", (queried_etf: str, )
-
-        2. if etf_id is not in the etf_ticker table, run etf4u before moving onto step 3
-        
-        3. get all records pertaining to (today's date, etf_id)
-              
-        run "SELECT holdings_table.Holding, etf_holdings_table.Holding_Weight
-        FROM etf_holdings_table
-        WHERE etf_holdings_table.Date = TODAY AND etf_holdings_table.etf_ticker_ID = etf_id
-        INNER JOIN holdings_table ON Holding_ID
-        """
+Notes on the topic of cron jobs:
+- [on aws](https://www.freecodecamp.org/news/how-to-create-auto-updating-data-visualizations-in-python-with-matplotlib-and-aws/)
+- with a fastapi endpoint [1](https://github.com/streamlit/streamlit/issues/439#issuecomment-1007204213), [2](https://davidefiocco.github.io/streamlit-fastapi-ml-serving/), [3](https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml)
 
 
 
-        see https://stackoverflow.com/questions/23273242/multiple-where-clauses-in-sqlite3-python  
-
-
-
-5. modify etf4u
-    - needs to be run from cli (for eventual cron job)
-    - also needs to be run from python process
-    - needs to feed data to the db
-    - needs integration with zak source
-
-Another thing: exceptions when no internet
-
-To view your application in the web browser run:
-  $ gcloud app browse
-or visit: https://test-streamlit-app.ue.r.appspot.com
-
-Still TODO:
-
-0. add logging functionality < done jan 14th >
-1. adding a "show raw data" option < done on jan 13th >
-2. adding a "download raw data" option < done on jan 14th >
-3. adding postgresql connection option
-4. adding cron scraping job option
-    see the following:
-        - https://github.com/streamlit/streamlit/issues/439#issuecomment-1007204213
-        - https://davidefiocco.github.io/streamlit-fastapi-ml-serving/
-        - https://cloud.google.com/appengine/docs/flexible/python/scheduling-jobs-with-cron-yaml
-5. add diagrams explaining database stuff
-6. Vega-lite diagrams instead of matplotlib/seaborn?
-7. add tab explaining distance measures
-
-
-gcloud app deploy app.yml
-
-https://github.com/markdouthwaite/streamlit-project
-
-https://ruicosta.blog/2020/04/27/run-streamlit-io-on-google-cloud-kubernetes/
