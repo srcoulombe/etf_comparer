@@ -7,7 +7,7 @@ from typing import Mapping, List, Tuple, Callable, Union, Iterable, Any
 import pandas as pd
 from scipy.spatial.distance import cosine, jaccard
 
-# tests
+# TODO: tests
 def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
     """Returns the indices of items in `enumerable`
     which differ from the previous item. Also includes the
@@ -42,7 +42,7 @@ def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
                     if enumerable_at_i != enumerable_at_i_plus_one ]
     return [0] + transitions + [len(enumerable)]
 
-# TODO: example, test, what if enumerable_ = [], [False], [True], [True,True], [False,False]
+# TODO: tests
 def get_contiguous_truthy_segments(enumerable_: List[bool]) -> List[Tuple[int,int]]:
     """Returns a list of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
     of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
@@ -57,6 +57,21 @@ def get_contiguous_truthy_segments(enumerable_: List[bool]) -> List[Tuple[int,in
     List[Tuple[int,int]]
         List of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
         of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
+    
+    Examples
+    --------
+    >>> out = get_contiguous_truthy_segments([])
+    >>> assert out == []
+    >>> out = get_contiguous_truthy_segments([1])
+    >>> assert out == [(0,1)]
+    >>> out = get_contiguous_truthy_segments([1,1])
+    >>> assert out == [(0,2)]
+    >>> out = get_contiguous_truthy_segments([1,1,0])
+    >>> assert out == [(0,2)]
+    >>> out = get_contiguous_truthy_segments([0,1,0,1,1,1])
+    >>> assert out == [(1,2),(3,6)]
+    >>> out = get_contiguous_truthy_segments([False, False,])
+    >>> assert out == []
     """
     enumerable = list(map(bool, enumerable_))
     contigs: List[Tuple[int,int]] = []
