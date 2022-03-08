@@ -269,4 +269,3 @@ def fetch(  fund: str,
         except IndexError:
             continue
     return {holding: {'weight':weight} for holding, weight in result.items()}
-    return [(holding, weight) for holding, weight in result.items()]
