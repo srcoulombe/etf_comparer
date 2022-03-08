@@ -1,7 +1,7 @@
 # plotting.py 
 
 # standard library dependencies
-from typing import Mapping, List, Callable, Union, Tuple
+from typing import Mapping, List, Callable, Union
 
 # external dependencies
 import numpy as np
@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from scipy.spatial.distance import cosine, jaccard
+from scipy.spatial.distance import jaccard
 
 # local dependencies
 from .utils import get_etf_holding_weight_vectors, get_contiguous_truthy_segments, get_similarity
@@ -85,7 +85,7 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     etf_holding_weight_vectors = get_etf_holding_weight_vectors(query_output)
     fig, figax = plt.subplots(
         nrows = len(query_output)+1,
-        figsize = (8, 2*len(query_output)),
+        figsize = (10, min(10,2*len(query_output))),
         sharex = True
     )
     
@@ -138,7 +138,7 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     return fig
 
 def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = cosine) -> plt.Figure:
+                    distance_measure: Union[str,Callable] = jaccard) -> plt.Figure:
     """Plots the annotated heatmap indicating the distance between each ETF.
 
     Parameters
@@ -151,9 +151,9 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'cosine','jaccard','weighted_jaccard'), or the function
+        (must be one of 'jaccard','weighted_jaccard'), or the function
         itself. 
-        By default cosine
+        By default jaccard
 
     Returns
     -------
@@ -178,6 +178,17 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         df.loc[etf_2, etf_1] = round(similarity, 3)
     
     fig, ax = plt.subplots(figsize=(4,4))
+    n_etfs_to_font_size = {
+        2:10,
+        3:10,
+        4:10,
+        5:10,
+        6:9,
+        7:8,
+        8:7,
+        9:6,
+        10:5
+    }
     sns.heatmap(
         df, 
         annot = True, 
@@ -187,7 +198,8 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         yticklabels = etf_names,
         vmax = 1.,
         vmin = 0,
-        fmt='.1%'
+        fmt='.1%',
+        annot_kws={'fontsize':n_etfs_to_font_size[df.shape[0]]}
     )
     ax.tick_params(
         axis='both', 
