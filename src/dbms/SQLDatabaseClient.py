@@ -289,10 +289,12 @@ class SQLDatabaseClient(abc.ABC):
         
         Returns
         -------
-        Mapping[str, Mapping[str, Mapping]]
+        Tuple[Mapping[str, Mapping[str, Mapping]], List[str]]
             Dictionary mapping an ETF ticker (strings) to a sub-dictionary
             mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
-            w.r.t. the ETF).
+            w.r.t. the ETF)., and
+            A list of strings indicating the ETF tickers (strings) that weren't available
+        
         """
         if date_ is None:
             date_ = self.today
@@ -300,11 +302,16 @@ class SQLDatabaseClient(abc.ABC):
             raise ValueError(f"Unable to fetch data from {date_}; Functionality to look into the future is not supported yet.")
             
         results: Mapping[str, Mapping[str, Mapping]] = dict()
+        unavailable_etfs: List[str] = []
         for etf_ticker in etf_tickers:
-            etf_ticker_holdings: List[Tuple[datetime.date, str, str, float]] = self.get_holdings_and_weights_for_etf(etf_ticker)
-            results[etf_ticker] = {
-                holding_ticker: dict(weight=holding_weight)
-                for (date, etf_ticker_id, holding_ticker, holding_weight)
-                in etf_ticker_holdings
-            }
-        return results                                            
+            try:
+                etf_ticker_holdings: List[Tuple[datetime.date, str, str, float]] = self.get_holdings_and_weights_for_etf(etf_ticker)
+            except AssertionError as etf_is_unfetchable:
+                unavailable_etfs.append(etf_ticker)
+            else:
+                results[etf_ticker] = {
+                    holding_ticker: dict(weight=holding_weight)
+                    for (date, etf_ticker_id, holding_ticker, holding_weight)
+                    in etf_ticker_holdings
+                }
+        return results, unavailable_etfs                                          
