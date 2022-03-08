@@ -123,7 +123,7 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
         ]
     ))
 
-# TODO: test
+# TODO: tests
 def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapping]],
                                     all_holdings: List[str] = None,
                                     as_df: bool = False) -> Union[pd.DataFrame, Mapping[str, List[float]]]:
@@ -182,21 +182,23 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         return df
     return etfs_as_vectors
 
-# TODO: example, tests
-def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float:
+# TODO: tests
+def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]) -> float:
     """Convenience function implementing the weighted Jaccard Distance metric.
 
     Parameters
     ----------
-    v1 : Iterable[float]
+    vector1 : Iterable[float]
         An iterable of floats.
-    v2 : Iterable[float]
+        Presumed to be sorted in the same order as `vector2`.
+    vector2 : Iterable[float]
         An iterable of floats.
+        Presumed to be sorted in the same order as `vector1`.
 
     Returns
     -------
     float
-        The weighted Jaccard Distance between `v1` and `v2`
+        The weighted Jaccard Distance between `vector1` and `vector2`
 
     References
     ----------
@@ -204,9 +206,33 @@ def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float
 
     Examples
     --------
+    >>> vector1 = [1, 0, 0]
+    >>> vector2 = [0, 1, 0]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 1
+    >>> assert weighted_jaccard_distance(vector2, vector1) == 1
+    >>> assert weighted_jaccard_distance(vector1, vector1) == 0
+    >>> assert weighted_jaccard_distance(vector2, vector2) == 0
+    >>> vector1 = [2, 0, 0]
+    >>> vector2 = [2, 0, 3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.6
+    >>> vector1 = [2, 1, 0]
+    >>> vector2 = [2, 1, 3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.5
+    >>> vector1 = [.2, .1, .0]
+    >>> vector2 = [.2, .1, .3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.5
 
     """
-    return sum([min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])/sum([max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])
+    v1 = list(vector1)
+    v2 = list(vector2)
+    assert len(v1) == len(v2)
+    numerator = sum(
+        [min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
+    )
+    denominator = sum(
+        [max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
+    )
+    return 1.0 - numerator / denominator
 
 # TODO: example
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
