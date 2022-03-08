@@ -1,7 +1,7 @@
 # plotting.py 
 
 # standard library dependencies
-from typing import Mapping, List, Callable, Union
+from typing import Mapping, List, Callable, Union, Tuple
 
 # external dependencies
 import numpy as np
@@ -90,12 +90,14 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     )
     
     colours = list(mcolors.TABLEAU_COLORS.values())
+    ylabels: List[str] = []
     for i, (etf_name, etf_holding_weight_vector) in enumerate(etf_holding_weight_vectors.items()):
         plot_holding_track(
             etf_name,
             etf_holding_weight_vector,
             ax = figax[i]
         )
+        ylabels.append(etf_name)
 
         bottom = i / len(etf_holding_weight_vectors)
         top = bottom + 1/len(etf_holding_weight_vectors)
@@ -113,7 +115,10 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
                 label = etf_name if j == 0 else None
             )
     figax[~0].set_ylabel("ETF Coverage")
-    figax[~0].set_yticks([])
+    figax[~0].set_yticks(
+        [ y-len(etf_holding_weight_vectors) for y in list(range(len(etf_holding_weight_vectors)+1)) ]
+    )
+    figax[~0].set_yticklabels([""]+ylabels)
     figax[~0].set_xticks([])
     
     # Put a legend below current axis
