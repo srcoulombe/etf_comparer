@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from scipy.spatial.distance import cosine, jaccard
 
-
 # local dependencies
 from .utils import get_etf_holding_weight_vectors, get_contiguous_truthy_segments, get_similarity
 
@@ -36,7 +35,6 @@ plt.rcParams.update({
     'ytick.major.size': 1.0
 })
 
-# NOTE: everything below is related to plotting; move this to separate module
 def plot_holding_track( etf_name: str, 
                         holding_weight_vector: List[float], 
                         color: str = 'white',
