@@ -9,8 +9,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from scipy.spatial.distance import cosine, jaccard
-
+from scipy.spatial.distance import jaccard
 
 # local dependencies
 from .utils import get_etf_holding_weight_vectors, get_contiguous_truthy_segments, get_similarity
@@ -36,7 +35,6 @@ plt.rcParams.update({
     'ytick.major.size': 1.0
 })
 
-# NOTE: everything below is related to plotting; move this to separate module
 def plot_holding_track( etf_name: str, 
                         holding_weight_vector: List[float], 
                         color: str = 'white',
@@ -87,17 +85,19 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     etf_holding_weight_vectors = get_etf_holding_weight_vectors(query_output)
     fig, figax = plt.subplots(
         nrows = len(query_output)+1,
-        figsize = (8, 2*len(query_output)),
+        figsize = (10, min(10,2*len(query_output))),
         sharex = True
     )
     
     colours = list(mcolors.TABLEAU_COLORS.values())
+    ylabels: List[str] = []
     for i, (etf_name, etf_holding_weight_vector) in enumerate(etf_holding_weight_vectors.items()):
         plot_holding_track(
             etf_name,
             etf_holding_weight_vector,
             ax = figax[i]
         )
+        ylabels.append(etf_name)
 
         bottom = i / len(etf_holding_weight_vectors)
         top = bottom + 1/len(etf_holding_weight_vectors)
@@ -115,7 +115,10 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
                 label = etf_name if j == 0 else None
             )
     figax[~0].set_ylabel("ETF Coverage")
-    figax[~0].set_yticks([])
+    figax[~0].set_yticks(
+        [ y-len(etf_holding_weight_vectors) for y in list(range(len(etf_holding_weight_vectors)+1)) ]
+    )
+    figax[~0].set_yticklabels([""]+ylabels)
     figax[~0].set_xticks([])
     
     # Put a legend below current axis
@@ -135,7 +138,7 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     return fig
 
 def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = cosine) -> plt.Figure:
+                    distance_measure: Union[str,Callable] = jaccard) -> plt.Figure:
     """Plots the annotated heatmap indicating the distance between each ETF.
 
     Parameters
@@ -148,9 +151,9 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'cosine','jaccard','weighted_jaccard'), or the function
+        (must be one of 'jaccard','weighted_jaccard'), or the function
         itself. 
-        By default cosine
+        By default jaccard
 
     Returns
     -------
@@ -175,6 +178,17 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         df.loc[etf_2, etf_1] = round(similarity, 3)
     
     fig, ax = plt.subplots(figsize=(4,4))
+    n_etfs_to_font_size = {
+        2:10,
+        3:10,
+        4:10,
+        5:10,
+        6:9,
+        7:8,
+        8:7,
+        9:6,
+        10:5
+    }
     sns.heatmap(
         df, 
         annot = True, 
@@ -185,7 +199,7 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         vmax = 1.,
         vmin = 0,
         fmt='.1%',
-        annot_kws={"size": 20 / np.sqrt(len(df))},
+        annot_kws={'fontsize':n_etfs_to_font_size[df.shape[0]]}
     )
     ax.tick_params(
         axis='both', 

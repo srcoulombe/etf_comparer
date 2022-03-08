@@ -1,12 +1,31 @@
 # standard library dependencies
 import re
-from typing import Mapping, Union, List, Tuple
+from typing import Mapping, Union
 
 # external dependencies
 import requests
 
 def fetch(  etf: str,
-            headers: Mapping[str,str] = None) -> Union[None, List[Tuple[str, float]]]:
+            headers: Mapping[str,str] = None) -> Union[None, Mapping[str, Mapping[str, float]]]:
+    """Scrapes zacks.com for today's holdings data on the specified ETF.
+
+    Parameters
+    ----------
+    etf : str
+        ETF of interest.
+    headers : Mapping[str,str], optional
+        HTTP headers to pass to `requests.get`. 
+        By default `{
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
+        }`.
+
+    Returns
+    -------
+    Union[None, Mapping[str, Mapping[str, float]]]
+        Either None (if no data on the specified ETF was available on zacks.com),
+        or a dictionary mapping a holding ticker (string) to a sub-dictionary mapping
+        'weight' to the holding ticker's weight in the ETF.
+    """
     if headers is None:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"

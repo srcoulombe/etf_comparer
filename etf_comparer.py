@@ -24,25 +24,25 @@ st.set_page_config(layout='centered')
 
 st.title('Comparing ETFs')
 
-backend_option = "SQLite3"
-with st.expander("Pick Database Management System"):
-    backend_option = st.selectbox(
-        'Choose the database management system to use in the back end:',
-        ('TinyDB','SQLite3')
-    )
-    st.write('Using:', backend_option)
-dbc = select_database(backend_option)
-logging.info(f"Connected to {backend_option} client instance")
-
 with st.expander("What's an ETF?"):
-    st.markdown("""An Exchange-Traded Fund (ETF) is basically a variety-pack of other financial assets that you
+    st.markdown("""An **Exchange-Traded Fund (ETF)** is basically a variety-pack of other financial assets that you
 can purchase exactly as you purchase/invest in other stocks.
     
 ETFs are often themed (i.e., they can be a collection of stocks from the same industry, location, etc..), 
 and some aim to track an index (e.g., the 'SPY' ETF aims to hold the same stocks listed in Standard & Poor's (S&P) 500 index).
     
 ETFs have other advantages, such as allowing you to invest in assets that are otherwise difficult to access, 
-but **the main takeaway is that an ETF is a collection of assets (formally refered to as holdings) that are bundled together**.""")
+but **the main takeaway is that an ETF is a collection of assets (formally referred to as 'holdings') that are bundled together**.""")
+
+
+backend_option = st.selectbox(
+    'Choose the database management system to use in the back end:',
+    ('TinyDB','SQLite3')
+)
+st.write('Using:', backend_option)
+
+dbc = select_database(backend_option)
+logging.info(f"Connected to {backend_option} client instance")
 
 @st.cache 
 def clean_user_data(user_input: List[str]) -> List[str]:    
@@ -54,15 +54,23 @@ def clean_user_data(user_input: List[str]) -> List[str]:
 
 def run(user_input: str) -> None:
     logging.info(f'Loading data for: {user_input}')
-
-    etfs_data = dbc.get_holdings_and_weights_for_etfs(
+    etfs_data, unavailable_etfs = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)[:10]
     )
+    if len(unavailable_etfs) > 0:
+        warning = f"Failed to fetch data for the following ETFs: {', '.join(unavailable_etfs)}"
+        logging.warning(warning)
+        st.warning(warning)
+
     logging.info(f'Loaded data for: {user_input}')
     logging.info(f'Processing data for: {user_input}')
     
     st.pyplot(plot_holdings_tracks(etfs_data), dpi=1000)
     
+    logging.info(f'Processed data for: {user_input}')
+
+    logging.info(f'Calculating similarities between: {user_input}')
+
     logging.info(f'Processed data for: {user_input}')
 
     logging.info(f'Calculating similarities between: {user_input}')
@@ -89,7 +97,9 @@ def run(user_input: str) -> None:
         buf = BytesIO()
         fig.savefig(buf, format="png")#, figsize=(4,4))
         st.image(buf)
-
+    
+    logging.info(f'Calculated similarities between: {user_input}')
+    logging.info(f'Re-fetching data for: {user_input}')
     logging.info(f'Calculated similarities between: {user_input}')
     logging.info(f'Re-fetching data for: {user_input}')
     data = get_etf_holding_weight_vectors(
@@ -109,9 +119,7 @@ def run(user_input: str) -> None:
             key='download-csv'
         )
         st.dataframe(data)
-        
-
-    #st.pyplot(plot_similarity(etfs_data), figsize=(2,2), dpi=1000)
+    
 st.subheader("Specify up to 10 ETFs to compare")
 
 with st.form(key='my_form'):

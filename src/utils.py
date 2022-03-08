@@ -5,11 +5,13 @@ from typing import Mapping, List, Tuple, Callable, Union, Iterable, Any
 
 # external dependencies
 import pandas as pd
-from scipy.spatial.distance import cosine, jaccard
+from scipy.spatial.distance import jaccard
 
-# TODO: summary
+# TODO: tests
 def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
-    """[summary]
+    """Returns the indices of items in `enumerable`
+    which differ from the previous item. Also includes the
+    0th and `len(enumerables)`th index.
 
     Parameters
     ----------
@@ -23,13 +25,24 @@ def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
         List of integers representing the indices in `enumerable`
         where `enumerable[i] != enumerable[i+1]` (as well as indices for 
         `0` and `len(enumerable)`)
+    
+    Examples
+    --------
+    >>> test = get_boundaries([0])
+    >>> assert test == [0, 1]
+    >>> test = get_boundaries([0,0])
+    >>> assert test == [0, 2]
+    >>> test = get_boundaries([0, 1])
+    >>> assert test == [0, 1, 2]
+    >>> test = get_boundaries([0, 0, 1, 1, 0, 1, 0, 0])
+    >>> assert test == [0, 2, 4, 5, 6, 8]
     """
     transitions = [ i+1 for i, (enumerable_at_i, enumerable_at_i_plus_one)
                     in enumerate(zip(enumerable[:-1], enumerable[1:]))
                     if enumerable_at_i != enumerable_at_i_plus_one ]
     return [0] + transitions + [len(enumerable)]
 
-# TODO: example, test, what if enumerable_ = [], [False], [True], [True,True], [False,False]
+# TODO: tests
 def get_contiguous_truthy_segments(enumerable_: List[bool]) -> List[Tuple[int,int]]:
     """Returns a list of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
     of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
@@ -44,6 +57,21 @@ def get_contiguous_truthy_segments(enumerable_: List[bool]) -> List[Tuple[int,in
     List[Tuple[int,int]]
         List of tuples of integers indicating the `(inclusive_starting_index, exclusive_stopping_index)`
         of contiguous truthy segments in `enumerable` (the List[bool] version of `enumerable_`).
+    
+    Examples
+    --------
+    >>> out = get_contiguous_truthy_segments([])
+    >>> assert out == []
+    >>> out = get_contiguous_truthy_segments([1])
+    >>> assert out == [(0,1)]
+    >>> out = get_contiguous_truthy_segments([1,1])
+    >>> assert out == [(0,2)]
+    >>> out = get_contiguous_truthy_segments([1,1,0])
+    >>> assert out == [(0,2)]
+    >>> out = get_contiguous_truthy_segments([0,1,0,1,1,1])
+    >>> assert out == [(1,2),(3,6)]
+    >>> out = get_contiguous_truthy_segments([False, False,])
+    >>> assert out == []
     """
     enumerable = list(map(bool, enumerable_))
     contigs: List[Tuple[int,int]] = []
@@ -80,6 +108,12 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
     Notes
     -----
     The returned list does not contain any duplicates. 
+
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": 0.5, "tickerB": 0.5}, "etf2": {"tickerC": 1.0}}
+    >>> out = get_all_holdings(sample)
+    >>> assert out == ['tickerA', 'tickerB', 'tickerC']
     """
     return sorted(set(
         [
@@ -89,7 +123,7 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
         ]
     ))
 
-# TODO: example, test
+# TODO: tests
 def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapping]],
                                     all_holdings: List[str] = None,
                                     as_df: bool = False) -> Union[pd.DataFrame, Mapping[str, List[float]]]:
@@ -106,7 +140,7 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     all_holdings : List[str], optional
         Optional list of all holdings to consider, by default None.
-        If kept as None, it gets converted to the output of `reorder_holdings_by_overlap`
+        If kept as None, it gets converted to the output of `reorder_holdings_by_popularity`
 
     Returns
     -------
@@ -115,10 +149,21 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         Each position in the list of floats corresponds to a holding held by >= 1
         ETF in `query_output`. The float at position `i` indicates the weight of the
         `ith` holding in the corresponding ETF.
+        Can also be a Pandas DataFrame with holdings as the index and etfs as columns.
+
+    Examples
+    --------
+    >>> example_query_output = {'etf1': {'A': {'weight': 0.2}, 'B': {'weight': 0.3}}, 'etf2': {'C': {'weight': 1.0}}}
+    >>> out = get_etf_holding_weight_vectors(example_query_output)
+    >>> assert out == {"etf1": [0.2, 0.3, 0.0], "etf2": [0.0, 0.0, 1.0]}
+    >>> out = get_etf_holding_weight_vectors(example_query_output, as_df=True)
+    >>> expected = pd.DataFrame({"etf1": [0.2, 0.3, 0.0], "etf2": [0.0, 0.0, 1.0]}, index=['A','B','C'])
+    >>> assert expected.equals(out)
+    >>> assert get_etf_holding_weight_vectors(dict()) == dict()
     """
     if all_holdings is None:
         all_holdings = [holding for holding, annotation in 
-                        reorder_holdings_by_overlap(query_output)]
+                        reorder_holdings_by_popularity(query_output)]
 
     etfs_as_vectors = {
         etf: [0.0]*len(all_holdings)
@@ -137,33 +182,78 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         return df
     return etfs_as_vectors
 
-# TODO: example, tests
-def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float:
+# TODO: tests
+def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]) -> float:
     """Convenience function implementing the weighted Jaccard Distance metric.
 
     Parameters
     ----------
-    v1 : Iterable[float]
+    vector1 : Iterable[float]
         An iterable of floats.
-    v2 : Iterable[float]
+        Presumed to be sorted in the same order as `vector2`.
+    vector2 : Iterable[float]
         An iterable of floats.
+        Presumed to be sorted in the same order as `vector1`.
 
     Returns
     -------
     float
-        The weighted Jaccard Distance between `v1` and `v2`
+        The weighted Jaccard Distance between `vector1` and `vector2`
 
     References
     ----------
     - https://en.wikipedia.org/wiki/Jaccard_index#Weighted_Jaccard_similarity_and_distance
-    """
-    return sum([min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])/sum([max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])
 
-# TODO: example
+    Notes
+    -----
+    The `w` kwarg to `scipy.distance.jaccard` does not compute the weighted jaccard distance
+    as it is described in the reference above.
+    
+    Examples
+    --------
+    >>> vector1 = [1, 0, 0]
+    >>> vector2 = [0, 1, 0]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 1
+    >>> assert weighted_jaccard_distance(vector2, vector1) == 1
+    >>> assert weighted_jaccard_distance(vector1, vector1) == 0
+    >>> assert weighted_jaccard_distance(vector2, vector2) == 0
+    >>> vector1 = [2, 0, 0]
+    >>> vector2 = [2, 0, 3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.6
+    >>> vector1 = [2, 1, 0]
+    >>> vector2 = [2, 1, 3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.5
+    >>> vector1 = [.2, .1, .0]
+    >>> vector2 = [.2, .1, .3]
+    >>> assert weighted_jaccard_distance(vector1, vector2) == 0.5
+    >>> assert weighted_jaccard_distance([0,0,0,0], [0,0,0,0]) == 0
+    """
+    v1 = list(vector1)
+    v2 = list(vector2)
+    assert len(v1) == len(v2), \
+        "`weighted_jaccard_distance` is meant to be applied to vectors of equal lengths."
+    assert min(min(v1), min(v2)) >= 0, \
+        "`weighted_jaccard_distance` is meant to be used on vectors with values >= 0.0."
+    numerator = sum(
+        [min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
+    )
+    denominator = sum(
+        [max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
+    )
+    try:
+        weighted_jaccard_similarity = numerator / denominator
+    except ZeroDivisionError:
+        # can only happen if v1 and v2 only contain 0s,
+        # in which case the vectors are identical
+        weighted_jaccard_similarity = 1
+    # `numerator \ denominator` returns 
+    return 1.0 - weighted_jaccard_similarity
+
+# TODO: tests
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = cosine) -> Mapping[Tuple[str,str], float]:
+                    distance_measure: Union[str,Callable] = jaccard) -> Mapping[Tuple[str,str], float]:
     """Wrapper around the functions for the supported distance measures 
-    (Cosine Distance, Jaccard Distance, and weighted Jaccard Distance).
+    (Jaccard Distance, and weighted Jaccard Distance).
 
     Parameters
     ----------
@@ -175,28 +265,38 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'cosine','jaccard','weighted_jaccard'), or the function
+        (must be one of 'jaccard','weighted_jaccard'), or the function
         itself. 
-        By default cosine
+        By default 'jaccard'
 
     Returns
     -------
     Mapping[Tuple[str,str], float]
         Dictionary mapping a tuple of strings (two ETF tickers) to their distance
         (according to the chosen metric).
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}}
+    >>> assert get_similarity(sample, distance_measure="jaccard") == {("etf1", "etf2"): 0.0}
+    >>> assert get_similarity(sample, distance_measure="weighted_jaccard") == {("etf1", "etf2"): 0.0}
+    >>> sample = sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerA": {"weight": 0.1}, "tickerD": {"weight": 0.3}, "tickerE": {"weight": 0.3}, "tickerF": {"weight": 0.3}}}
+    >>> similarities = get_similarity(sample, distance_measure="jaccard")
+    >>> assert round(similarities[('etf1','etf2')],3) == 0.2
+    >>> similarities = get_similarity(sample, distance_measure="weighted_jaccard")
+    >>> assert round(similarities[('etf1','etf2')],3) == 0.053
     """
     if isinstance(distance_measure, str):
         distance_measure = distance_measure.lower()
-        assert distance_measure in ('cosine','jaccard','weighted_jaccard'), \
-            f"{distance_measure} is not among the supported distance measures ('cosine','jaccard', 'weighted_jaccard')"
+        assert distance_measure in ('jaccard','weighted_jaccard'), \
+            f"{distance_measure} is not among the supported distance measures ('jaccard', 'weighted_jaccard')"
         distance_measure_to_function = {
             'jaccard': jaccard,
-            'cosine': cosine,
             'weighted_jaccard': weighted_jaccard_distance
         }
         distance_measure = distance_measure_to_function[distance_measure]
         
-    assert distance_measure in (cosine, jaccard, weighted_jaccard_distance)
+    assert distance_measure in (jaccard, weighted_jaccard_distance)
     etfs_as_vectors = get_etf_holding_weight_vectors(
         query_output
     )
@@ -218,7 +318,7 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                 )
     return similarities
 
-# TODO: test, example
+# TODO: tests
 def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapping[str, str]:
     """Returns a dictionary mapping each holding held by >= 1 ETF in `query_output`
     to a string of length = `len(query_output)`. These strings (annotations) are comprised of 
@@ -240,6 +340,16 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
         A dictionary mapping a holding ticker (string) to an annotation string
         whose `ith` character indicates whether the `ith` ETF held the corresponding holding
         (`'1'`) or not (`'0'`).
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {"tickerA": '10', "tickerB": '10', "tickerC": '01'}
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerB": {"weight": 0.05}, "tickerD": {"weight": 0.05}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {'tickerA': '101', 'tickerB': '101', 'tickerC': '010', 'tickerD': '001'}
+
     """
     all_holdings_with_annotations: Mapping[str, tuple] = dict()
     # loop over all ETFs
@@ -258,13 +368,42 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
         all_holdings_with_annotations.items()
     }
 
-# TODO: test, example
-def reorder_holdings_by_overlap(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
+# TODO: tests
+def reorder_holdings_by_popularity(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
     """Convenience wrapper around `annotate_holdings` that sorts its result such that
-    the holding tickers (strings) held by the most ETFs are first in the sequence."""
+    the holding tickers (strings) shared among the most ETFs are first in the sequence.
+    
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+
+    Returns
+    -------
+    List[Tuple[str,str]]
+        List of (ticker, etf_membership) key:value pairs constructed by
+        sorting the output of `annotate_holdings(query_output)` such that the
+        tickers are listed in decreasing popularity.
+        
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerB": {"weight": 0.05}, "tickerD": {"weight": 0.05}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {'tickerA': '101', 'tickerB': '101', 'tickerC': '010', 'tickerD': '001'}
+    >>> out = reorder_holdings_by_popularity(sample)
+    >>> assert out == [('tickerA', '101'), ('tickerB', '101'), ('tickerC', '010'), ('tickerD', '001')]
+    """
     return sorted(
         annotate_holdings(query_output).items(),
-        key = lambda item: item[1],
+        key = lambda item: int(item[1],2),
         reverse = True
     )
 
+if __name__ == '__main__':
+    import doctest 
+    doctest.testmod()
