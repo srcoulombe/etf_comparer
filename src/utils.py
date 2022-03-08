@@ -108,6 +108,12 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
     Notes
     -----
     The returned list does not contain any duplicates. 
+
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": 0.5, "tickerB": 0.5}, "etf2": {"tickerC": 1.0}}
+    >>> out = get_all_holdings(sample)
+    >>> assert out == ['tickerA', 'tickerB', 'tickerC']
     """
     return sorted(set(
         [
@@ -117,7 +123,7 @@ def get_all_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[
         ]
     ))
 
-# TODO: example, test
+# TODO: test
 def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapping]],
                                     all_holdings: List[str] = None,
                                     as_df: bool = False) -> Union[pd.DataFrame, Mapping[str, List[float]]]:
@@ -143,6 +149,17 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         Each position in the list of floats corresponds to a holding held by >= 1
         ETF in `query_output`. The float at position `i` indicates the weight of the
         `ith` holding in the corresponding ETF.
+        Can also be a Pandas DataFrame with holdings as the index and etfs as columns.
+
+    Examples
+    --------
+    >>> example_query_output = {'etf1': {'A': {'weight': 0.2}, 'B': {'weight': 0.3}}, 'etf2': {'C': {'weight': 1.0}}}
+    >>> out = get_etf_holding_weight_vectors(example_query_output)
+    >>> assert out == {"etf1": [0.2, 0.3, 0.0], "etf2": [0.0, 0.0, 1.0]}
+    >>> out = get_etf_holding_weight_vectors(example_query_output, as_df=True)
+    >>> expected = pd.DataFrame({"etf1": [0.2, 0.3, 0.0], "etf2": [0.0, 0.0, 1.0]}, index=['A','B','C'])
+    >>> assert expected.equals(out)
+    >>> assert get_etf_holding_weight_vectors(dict()) == dict()
     """
     if all_holdings is None:
         all_holdings = [holding for holding, annotation in 
@@ -184,6 +201,10 @@ def weighted_jaccard_distance(v1: Iterable[float], v2: Iterable[float]) -> float
     References
     ----------
     - https://en.wikipedia.org/wiki/Jaccard_index#Weighted_Jaccard_similarity_and_distance
+
+    Examples
+    --------
+
     """
     return sum([min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])/sum([max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)])
 
