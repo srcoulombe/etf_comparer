@@ -346,9 +346,9 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
     >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}}
     >>> out = annotate_holdings(sample)
     >>> assert out == {"tickerA": '10', "tickerB": '10', "tickerC": '01'}
-    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerD": {"weight": 0.1}}}
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerB": {"weight": 0.05}, "tickerD": {"weight": 0.05}}}
     >>> out = annotate_holdings(sample)
-    >>> assert out == {'tickerA': '101', 'tickerB': '100', 'tickerC': '010', 'tickerD': '001'}
+    >>> assert out == {'tickerA': '101', 'tickerB': '101', 'tickerC': '010', 'tickerD': '001'}
 
     """
     all_holdings_with_annotations: Mapping[str, tuple] = dict()
@@ -368,13 +368,39 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
         all_holdings_with_annotations.items()
     }
 
-# TODO: test, example
+# TODO: tests
 def reorder_holdings_by_overlap(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
     """Convenience wrapper around `annotate_holdings` that sorts its result such that
-    the holding tickers (strings) held by the most ETFs are first in the sequence."""
+    the holding tickers (strings) shared among the most ETFs are first in the sequence.
+    
+    Parameters
+    ----------
+    query_output : Mapping[str, Mapping[str, Mapping]]
+        Dictionary mapping an ETF ticker (strings) to a sub-dictionary
+        mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
+        w.r.t. the ETF).
+        See the documentation for the `get_holdings_and_weights_for_etfs` method from
+        `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
+
+    Returns
+    -------
+    List[Tuple[str,str]]
+        List of (ticker, etf_membership) key:value pairs constructed by
+        sorting the output of `annotate_holdings(query_output)` such that the
+        tickers are listed in decreasing popularity.
+        
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerB": {"weight": 0.05}, "tickerD": {"weight": 0.05}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {'tickerA': '101', 'tickerB': '101', 'tickerC': '010', 'tickerD': '001'}
+    >>> out = reorder_holdings_by_overlap(sample)
+    >>> assert out == [('tickerA', '101'), ('tickerB', '101'), ('tickerC', '010'), ('tickerD', '001')]
+    """
     return sorted(
         annotate_holdings(query_output).items(),
-        key = lambda item: item[1],
+        key = lambda item: int(item[1],2),
         reverse = True
     )
 
