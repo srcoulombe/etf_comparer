@@ -35,9 +35,11 @@ def clean_user_data(user_input: List[str]) -> List[str]:
 def run(user_input: str) -> None:
     print('Loading data...')
     print(user_input)
-    etfs_data = dbc.get_holdings_and_weights_for_etfs(
+    etfs_data, unavailable_etfs = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)[:10]
     )
+    if len(unavailable_etfs) > 0:
+        st.warning(f"Failed to fetch data for the following ETFs: {', '.join(unavailable_etfs)}")
     print('Loaded data.')
     print('Processing data...')
     st.pyplot(plot_holdings_tracks(etfs_data), dpi=1000)
