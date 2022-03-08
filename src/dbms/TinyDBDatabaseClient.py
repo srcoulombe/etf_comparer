@@ -1,7 +1,7 @@
 # standard library dependencies
 from functools import lru_cache
 from datetime import datetime, date
-from typing import Iterable, Mapping, List
+from typing import Iterable, Mapping, List, Tuple
 
 # external dependencies
 from tinydb import TinyDB, Query
@@ -66,8 +66,9 @@ class TinyDBDatabaseClient:
                 assert etf_holdings is not None
                 assert len(etf_holdings) > 0
             except Exception as e:
-                print(f"Unable to fetch data for {etf_name}; {e}")
-                return dict()
+                message = f"Unable to fetch data for {etf_name}; {e}"
+                print(message)
+                raise ValueError(message) from e
             else:
                 self.db.insert({
                     "name": etf_name, 
@@ -82,7 +83,7 @@ class TinyDBDatabaseClient:
 
     def get_holdings_and_weights_for_etfs(  self,
                                             etfs: Iterable[str],
-                                            date_: str = None) -> Mapping[str, Mapping[str, Mapping]]:
+                                            date_: str = None) -> Tuple[Mapping[str, Mapping[str, Mapping]], List[str]]:
         """Wrapper to execute `query_` over all ETF tickers provided in `etfs`. 
 
         Parameters
@@ -95,10 +96,12 @@ class TinyDBDatabaseClient:
 
         Returns
         -------
-        Mapping[str, Mapping[str, Mapping]]
+        Tuple[Mapping[str, Mapping[str, Mapping]], List[str]]
             Dictionary mapping an ETF ticker (strings) to a sub-dictionary
             mapping the ETF's holdings (strings) to metadata (e.g. the holding's weight 
-            w.r.t. the ETF).
+            w.r.t. the ETF)., and
+            A list of strings indicating the ETF tickers (strings) that weren't available
+        
         """
         if date_ is None:
             date_ = self.today
@@ -107,6 +110,7 @@ class TinyDBDatabaseClient:
         
         etfs = list(set(etfs))
         etfs_holdings: Mapping[str, List[str]] = dict()
+        unavailable_etfs: List[str] = []
         for etf in etfs:
             assert isinstance(etf, str)
             try:
@@ -118,5 +122,6 @@ class TinyDBDatabaseClient:
             except Exception as e:
                 # log
                 print(e)
-        return {k:d for k,d in etfs_holdings.items() if len(d) > 0}
+                unavailable_etfs.append(etf)
+        return {k:d for k,d in etfs_holdings.items() if len(d) > 0}, unavailable_etfs
 
