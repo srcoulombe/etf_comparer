@@ -140,7 +140,7 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     all_holdings : List[str], optional
         Optional list of all holdings to consider, by default None.
-        If kept as None, it gets converted to the output of `reorder_holdings_by_overlap`
+        If kept as None, it gets converted to the output of `reorder_holdings_by_popularity`
 
     Returns
     -------
@@ -163,7 +163,7 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
     """
     if all_holdings is None:
         all_holdings = [holding for holding, annotation in 
-                        reorder_holdings_by_overlap(query_output)]
+                        reorder_holdings_by_popularity(query_output)]
 
     etfs_as_vectors = {
         etf: [0.0]*len(all_holdings)
@@ -369,7 +369,7 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
     }
 
 # TODO: tests
-def reorder_holdings_by_overlap(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
+def reorder_holdings_by_popularity(query_output: Mapping[str, Mapping[str, Mapping]]) -> List[Tuple[str,str]]:
     """Convenience wrapper around `annotate_holdings` that sorts its result such that
     the holding tickers (strings) shared among the most ETFs are first in the sequence.
     
@@ -395,7 +395,7 @@ def reorder_holdings_by_overlap(query_output: Mapping[str, Mapping[str, Mapping]
     >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerB": {"weight": 0.05}, "tickerD": {"weight": 0.05}}}
     >>> out = annotate_holdings(sample)
     >>> assert out == {'tickerA': '101', 'tickerB': '101', 'tickerC': '010', 'tickerD': '001'}
-    >>> out = reorder_holdings_by_overlap(sample)
+    >>> out = reorder_holdings_by_popularity(sample)
     >>> assert out == [('tickerA', '101'), ('tickerB', '101'), ('tickerC', '010'), ('tickerD', '001')]
     """
     return sorted(
