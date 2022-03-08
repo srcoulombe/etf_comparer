@@ -249,7 +249,7 @@ def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]
     # `numerator \ denominator` returns 
     return 1.0 - weighted_jaccard_similarity
 
-# TODO: test
+# TODO: tests
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                     distance_measure: Union[str,Callable] = jaccard) -> Mapping[Tuple[str,str], float]:
     """Wrapper around the functions for the supported distance measures 
@@ -318,7 +318,7 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                 )
     return similarities
 
-# TODO: test, example
+# TODO: tests
 def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapping[str, str]:
     """Returns a dictionary mapping each holding held by >= 1 ETF in `query_output`
     to a string of length = `len(query_output)`. These strings (annotations) are comprised of 
@@ -340,6 +340,16 @@ def annotate_holdings(query_output: Mapping[str, Mapping[str, Mapping]]) -> Mapp
         A dictionary mapping a holding ticker (string) to an annotation string
         whose `ith` character indicates whether the `ith` ETF held the corresponding holding
         (`'1'`) or not (`'0'`).
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {"tickerA": '10', "tickerB": '10', "tickerC": '01'}
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}, "etf3": {"tickerA": {"weight": 0.9}, "tickerD": {"weight": 0.1}}}
+    >>> out = annotate_holdings(sample)
+    >>> assert out == {'tickerA': '101', 'tickerB': '100', 'tickerC': '010', 'tickerD': '001'}
+
     """
     all_holdings_with_annotations: Mapping[str, tuple] = dict()
     # loop over all ETFs
