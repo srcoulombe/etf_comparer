@@ -6,8 +6,6 @@ from io import BytesIO
 from typing import List
 
 # external dependencies
-import numpy as np
-import pandas as pd
 import streamlit as st 
 from streamlit_tags import st_tags
 
