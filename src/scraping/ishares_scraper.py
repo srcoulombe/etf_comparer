@@ -1,6 +1,6 @@
 import csv
 import urllib.request
-from typing import Mapping, List, Tuple, Union
+from typing import Mapping, Union
 
 # The iShares adapter fetches the .csv file of the funds' holdings published on their site
 # AFAIK there's no way to do this programmatically for any fund so we need to manually
@@ -49,6 +49,17 @@ FUNDS = ["aaxj", "acwf", "acwi", "acwv", "acwx", "agg", "agt", "agz", "aia", "am
         "usig", "usmv", "usrt", "usxf", "vegi", "vlue", "wood", "wps", "xjh", "xjr", "xt", "xvv"]
 
 def get_fund_file(symbol: str) -> str:
+    """Convenience function that returns the URL for the specified `symbol`.
+    
+    Parameters
+    ----------
+    symbol : str
+        Ticker for the ETF of interest.
+
+    Returns
+    -------
+    The URL to parse in order to get holding data on the ETF of interest.
+    """
     symbol = symbol.lower()
     funds_basepaths = {
         "aaxj": "/239601/ishares-msci-all-country-asia-ex-japan-etf/1467271812596.ajax",
@@ -436,8 +447,26 @@ def get_fund_file(symbol: str) -> str:
     return f"https://www.ishares.com/us/products{funds_basepaths[symbol]}?fileType=csv&fileName={symbol.upper()}_holdings&dataType=fund"
 
 def fetch(  fund: str, 
-            headers: Mapping[str,str] = None) -> Union[None, List[Tuple[str,float]]]:
+            headers: Mapping[str,str] = None) -> Union[None, Mapping[str, Mapping[str, float]]]:
+    """Scrapes ishares.com for today's holdings data on the specified ETF.
 
+    Parameters
+    ----------
+    etf : str
+        ETF of interest.
+    headers : Mapping[str,str], optional
+        HTTP headers to pass to `urllib.request.Request`. 
+        By default `{
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"
+        }`.
+
+    Returns
+    -------
+    Union[None, Mapping[str, Mapping[str, float]]]
+        Either None (if no data on the specified ETF was available on zacks.com),
+        or a dictionary mapping a holding ticker (string) to a sub-dictionary mapping
+        'weight' to the holding ticker's weight in the ETF.
+    """
     global FUNDS
     assert fund in FUNDS
     if headers is None:

@@ -1,6 +1,6 @@
 # standard library dependencies
 import re
-from typing import Mapping, Union, List, Tuple
+from typing import Mapping, Union
 
 # external dependencies
 import requests
@@ -15,9 +15,9 @@ def fetch(  etf: str,
         ETF of interest.
     headers : Mapping[str,str], optional
         HTTP headers to pass to `requests.get`. 
-        By default {
+        By default `{
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
-        }.
+        }`.
 
     Returns
     -------
