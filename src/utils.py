@@ -5,7 +5,7 @@ from typing import Mapping, List, Tuple, Callable, Union, Iterable, Any
 
 # external dependencies
 import pandas as pd
-from scipy.spatial.distance import cosine, jaccard
+from scipy.spatial.distance import jaccard
 
 # TODO: tests
 def get_boundaries(enumerable: Iterable[Any]) -> List[int]:
@@ -204,6 +204,11 @@ def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]
     ----------
     - https://en.wikipedia.org/wiki/Jaccard_index#Weighted_Jaccard_similarity_and_distance
 
+    Notes
+    -----
+    The `w` kwarg to `scipy.distance.jaccard` does not compute the weighted jaccard distance
+    as it is described in the reference above.
+    
     Examples
     --------
     >>> vector1 = [1, 0, 0]
@@ -221,24 +226,34 @@ def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]
     >>> vector1 = [.2, .1, .0]
     >>> vector2 = [.2, .1, .3]
     >>> assert weighted_jaccard_distance(vector1, vector2) == 0.5
-
+    >>> assert weighted_jaccard_distance([0,0,0,0], [0,0,0,0]) == 0
     """
     v1 = list(vector1)
     v2 = list(vector2)
-    assert len(v1) == len(v2)
+    assert len(v1) == len(v2), \
+        "`weighted_jaccard_distance` is meant to be applied to vectors of equal lengths."
+    assert min(min(v1), min(v2)) >= 0, \
+        "`weighted_jaccard_distance` is meant to be used on vectors with values >= 0.0."
     numerator = sum(
         [min(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
     )
     denominator = sum(
         [max(v1_i, v2_i) for (v1_i, v2_i) in zip(v1, v2)]
     )
-    return 1.0 - numerator / denominator
+    try:
+        weighted_jaccard_similarity = numerator / denominator
+    except ZeroDivisionError:
+        # can only happen if v1 and v2 only contain 0s,
+        # in which case the vectors are identical
+        weighted_jaccard_similarity = 1
+    # `numerator \ denominator` returns 
+    return 1.0 - weighted_jaccard_similarity
 
-# TODO: example
+# TODO: test
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = cosine) -> Mapping[Tuple[str,str], float]:
+                    distance_measure: Union[str,Callable] = jaccard) -> Mapping[Tuple[str,str], float]:
     """Wrapper around the functions for the supported distance measures 
-    (Cosine Distance, Jaccard Distance, and weighted Jaccard Distance).
+    (Jaccard Distance, and weighted Jaccard Distance).
 
     Parameters
     ----------
@@ -250,28 +265,38 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'cosine','jaccard','weighted_jaccard'), or the function
+        (must be one of 'jaccard','weighted_jaccard'), or the function
         itself. 
-        By default cosine
+        By default 'jaccard'
 
     Returns
     -------
     Mapping[Tuple[str,str], float]
         Dictionary mapping a tuple of strings (two ETF tickers) to their distance
         (according to the chosen metric).
+    
+    Examples
+    --------
+    >>> sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerC": {"weight": 1.0}}}
+    >>> assert get_similarity(sample, distance_measure="jaccard") == {("etf1", "etf2"): 0.0}
+    >>> assert get_similarity(sample, distance_measure="weighted_jaccard") == {("etf1", "etf2"): 0.0}
+    >>> sample = sample = {"etf1": {"tickerA": {"weight": 0.5}, "tickerB": {"weight": 0.5}}, "etf2": {"tickerA": {"weight": 0.1}, "tickerD": {"weight": 0.3}, "tickerE": {"weight": 0.3}, "tickerF": {"weight": 0.3}}}
+    >>> similarities = get_similarity(sample, distance_measure="jaccard")
+    >>> assert round(similarities[('etf1','etf2')],3) == 0.2
+    >>> similarities = get_similarity(sample, distance_measure="weighted_jaccard")
+    >>> assert round(similarities[('etf1','etf2')],3) == 0.053
     """
     if isinstance(distance_measure, str):
         distance_measure = distance_measure.lower()
-        assert distance_measure in ('cosine','jaccard','weighted_jaccard'), \
-            f"{distance_measure} is not among the supported distance measures ('cosine','jaccard', 'weighted_jaccard')"
+        assert distance_measure in ('jaccard','weighted_jaccard'), \
+            f"{distance_measure} is not among the supported distance measures ('jaccard', 'weighted_jaccard')"
         distance_measure_to_function = {
             'jaccard': jaccard,
-            'cosine': cosine,
             'weighted_jaccard': weighted_jaccard_distance
         }
         distance_measure = distance_measure_to_function[distance_measure]
         
-    assert distance_measure in (cosine, jaccard, weighted_jaccard_distance)
+    assert distance_measure in (jaccard, weighted_jaccard_distance)
     etfs_as_vectors = get_etf_holding_weight_vectors(
         query_output
     )
