@@ -9,3 +9,4 @@ streamlit==1.4.0
 streamlit-tags
 fastapi==0.71.0
 pytest==7.0.1
+psycopg==3.0.9
