@@ -10,3 +10,4 @@ streamlit-tags
 fastapi==0.71.0
 pytest==7.0.1
 psycopg2-binary
+boto3==1.21.15
