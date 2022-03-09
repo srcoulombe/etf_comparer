@@ -1,12 +1,12 @@
 # standard library dependencies
 import re
-from typing import Mapping, Union
+from typing import Mapping
 
 # external dependencies
 import requests
 
 def fetch(  etf: str,
-            headers: Mapping[str,str] = None) -> Union[None, Mapping[str, Mapping[str, float]]]:
+            headers: Mapping[str,str] = None) -> Mapping[str, Mapping[str, float]]:
     """Scrapes zacks.com for today's holdings data on the specified ETF.
 
     Parameters
@@ -21,16 +21,18 @@ def fetch(  etf: str,
 
     Returns
     -------
-    Union[None, Mapping[str, Mapping[str, float]]]
-        Either None (if no data on the specified ETF was available on zacks.com),
+    Mapping[str, Mapping[str, float]]
+        An empty dictionary (if no data on the specified ETF was available on zacks.com),
         or a dictionary mapping a holding ticker (string) to a sub-dictionary mapping
         'weight' to the holding ticker's weight in the ETF.
     """
+    if etf == "":
+        return dict()
     if headers is None:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
         }
-    
+    etfs_holdings = dict()
     r = requests.get(
         f"https://www.zacks.com/funds/etf/{etf}/holding",
         headers = headers
@@ -40,11 +42,9 @@ def fetch(  etf: str,
     except requests.exceptions.HTTPError as e:
         # not a 200
         print(f"Error: {e}")
-        etfs_holdings = None
     else:
         pat = re.compile(r'etf\\\/(.*?)\\')
         pat = re.compile(r'<span class=\\"hoverquote-symbol\\">([a-zA-Z]*?)<span class=\\"sr-only\\"><\\/span><\\/span><\\/a>", "([0-9,]+)", "([0-9,\.]+)", "([0-9,\.]+)"')
-        etfs_holdings = dict()
         for (ticker_symbol, str_shares, str_weight, str_52_week_change) in re.findall(pat, r.text):
             etfs_holdings[ticker_symbol] = {
                 'shares': int(str_shares.replace(",","")),

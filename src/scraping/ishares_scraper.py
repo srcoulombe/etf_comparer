@@ -1,6 +1,9 @@
+# standard library dependencies
 import csv
-import urllib.request
 from typing import Mapping, Union
+
+# external dependencies
+import requests
 
 # The iShares adapter fetches the .csv file of the funds' holdings published on their site
 # AFAIK there's no way to do this programmatically for any fund so we need to manually
@@ -11,42 +14,263 @@ from typing import Mapping, Union
 # "iau": "/us/products/239561/ishares-gold-trust-fund/1521942788811.ajax?fileType=xls&fileName=iShares-Gold-Trust_fund&dataType=fund"
 
 
-FUNDS = ["aaxj", "acwf", "acwi", "acwv", "acwx", "agg", "agt", "agz", "aia", "amca", 
-        "aoa", "aok", "aom", "aor", "bftr", "bgrn", "bkf", "bmed", "btek", "byld", "ccrv", 
-        "cemb", "cmbs", "cmdy", "cmf", "cnya", "comt", "crbn", "defa", "dgro", "divb", 
-        "dmxf", "dsi", "dvy", "dvya", "dvye", "dynf", "eagg", "eaoa", "eaok", "eaom", 
-        "eaor", "ech", "ecns", "eden", "eem", "eema", "eems", "eemv", "efa", "efav", 
-        "efg", "efnl", "efv", "eido", "eirl", "eis", "emb", "embh", "emgf", "emhy", 
-        "emif", "emxc", "emxf", "enor", "enzl", "ephe", "epol", "epp", "epu", "erus", 
-        "esgd", "esge", "esgu", "esml", "eufn", "eusa", "eusb", "ewa", "ewc", "ewd", 
-        "ewg", "ewgs", "ewh", "ewi", "ewj", "ewje", "ewjv", "ewk", "ewl", "ewm", "ewn", 
-        "ewo", "ewp", "ewq", "ews", "ewt", "ewu", "ewus", "eww", "ewy", "ewz", "ewzs", 
-        "exi", "eza", "ezu", "faln", "fibr", "fill", "flot", "fm", "fovl", "fxi", "gbf", 
-        "ghyg", "gnma", "govt", "govz", "gsg", "gvi", "hawx", "hdv", "heem", "hefa", 
-        "hewc", "hewg", "hewj", "hewu", "heww", "hezu", "hjpx", "hscz", "hybb", "hydb", 
-        "hyg", "hygh", "hyxf", "hyxu", "iagg", "iai", "iak", "iat", "iauf", "ibb", "ibce", 
-        "ibdd", "ibdm", "ibdn", "ibdo", "ibdp", "ibdq", "ibdr", "ibds", "ibdt", "ibdu", 
-        "ibdv", "ibha", "ibhb", "ibhc", "ibhd", "ibhe", "ibhf", "ibmj", "ibmk", "ibml", 
-        "ibmm", "ibmn", "ibmo", "ibmp", "ibmq", "ibta", "ibtb", "ibtd", "ibte", "ibtf", 
-        "ibtg", "ibth", "ibti", "ibtj", "ibtk", "icf", "icln", "icol", "icsh", "icvt", 
-        "idev", "idna", "idrv", "idu", "idv", "iecs", "iedi", "ief", "iefa", "iefn", 
-        "iehs", "iei", "ieih", "ieme", "iemg", "ieo", "ietc", "ieur", "ieus", "iev", 
-        "iez", "ifgl", "ifra", "igbh", "ige", "igeb", "igf", "igib", "iglb", "igm", 
-        "ign", "igov", "igro", "igsb", "igv", "ihak", "ihe", "ihf", "ihi", "ijh", "ijj", 
-        "ijk", "ijr", "ijs", "ijt", "ilf", "iltb", "imtb", "imtm", "inda", "indy", "intf", 
-        "ioo", "ipac", "ipff", "iqlt", "irbo", "iscf", "ishg", "istb", "isze", "ita", "itb", 
-        "itot", "iusb", "iusg", "iusv", "ive", "ivlu", "ivv", "ivw", "iwb", "iwc", "iwd", 
-        "iwf", "iwfh", "iwl", "iwm", "iwn", "iwo", "iwp", "iwr", "iws", "iwv", "iwx", "iwy", 
-        "ixc", "ixg", "ixj", "ixn", "ixp", "ixus", "iyc", "iye", "iyf", "iyg", "iyh", "iyj", 
-        "iyk", "iyld", "iym", "iyr", "iyt", "iyw", "iyy", "iyz", "jkd", "jke", "jkf", "jkg", 
-        "jkh", "jki", "jkj", "jkk", "jkl", "jpxn", "jxi", "ksa", "kwt", "kxi", "ldem", 
-        "lemb", "lqd", "lqdh", "lqdi", "lrgf", "mbb", "mchi", "mear", "midf", "mtum", 
-        "mub", "mxi", "near", "nyf", "oef", "pff", "pick", "qat", "qlta", "qual", "reet", 
-        "rem", "rez", "ring", "rxi", "scj", "scz", "sdg", "sgov", "shv", "shy", "shyg", 
-        "size", "slqd", "slvp", "smin", "smlf", "smmd", "smmv", "soxx", "stip", "stlc", 
-        "stlg", "stlv", "stmb", "stsb", "sub", "susa", "susb", "susc", "susl", "sval", 
-        "tecb", "tflo", "thd", "tip", "tlh", "tlt", "tok", "tur", "uae", "urth", "ushy", 
-        "usig", "usmv", "usrt", "usxf", "vegi", "vlue", "wood", "wps", "xjh", "xjr", "xt", "xvv"]
+FUNDS = [
+    'aaxj',
+    'acwf',
+    'acwi',
+    'acwv',
+    'acwx',
+    'agt',
+    'aia',
+    'aoa',
+    'aok',
+    'aom',
+    'aor',
+    'bftr',
+    'bkf',
+    'bmed',
+    'btek',
+    'cnya',
+    'crbn',
+    'dgro',
+    'divb',
+    'dmxf',
+    'dsi',
+    'dvy',
+    'dvya',
+    'dvye',
+    'dynf',
+    'eaoa',
+    'eaok',
+    'eaom',
+    'eaor',
+    'ech',
+    'ecns',
+    'eden',
+    'eem',
+    'eema',
+    'eems',
+    'eemv',
+    'efa',
+    'efav',
+    'efg',
+    'efnl',
+    'efv',
+    'eido',
+    'eirl',
+    'eis',
+    'emgf',
+    'emif',
+    'emxc',
+    'emxf',
+    'enor',
+    'enzl',
+    'ephe',
+    'epol',
+    'epp',
+    'epu',
+    'erus',
+    'esgd',
+    'esge',
+    'esgu',
+    'esml',
+    'eufn',
+    'eusa',
+    'ewa',
+    'ewc',
+    'ewd',
+    'ewg',
+    'ewgs',
+    'ewh',
+    'ewi',
+    'ewj',
+    'ewje',
+    'ewjv',
+    'ewk',
+    'ewl',
+    'ewm',
+    'ewn',
+    'ewo',
+    'ewp',
+    'ewq',
+    'ews',
+    'ewt',
+    'ewu',
+    'ewus',
+    'eww',
+    'ewy',
+    'ewz',
+    'ewzs',
+    'exi',
+    'eza',
+    'ezu',
+    'fill',
+    'fm',
+    'fovl',
+    'fxi',
+    'hawx',
+    'hdv',
+    'heem',
+    'hefa',
+    'hewc',
+    'hewg',
+    'hewj',
+    'hewu',
+    'hezu',
+    'hjpx',
+    'hscz',
+    'iai',
+    'iak',
+    'iat',
+    'ibb',
+    'icf',
+    'icol',
+    'idev',
+    'idna',
+    'idrv',
+    'idu',
+    'idv',
+    'iecs',
+    'iedi',
+    'iefa',
+    'iefn',
+    'iehs',
+    'ieih',
+    'ieme',
+    'iemg',
+    'ieo',
+    'ietc',
+    'ieur',
+    'ieus',
+    'iev',
+    'iez',
+    'ifgl',
+    'ifra',
+    'ige',
+    'igf',
+    'igm',
+    'ign',
+    'igro',
+    'igv',
+    'ihak',
+    'ihe',
+    'ihf',
+    'ihi',
+    'ilf',
+    'imtm',
+    'inda',
+    'indy',
+    'intf',
+    'ioo',
+    'ipac',
+    'iqlt',
+    'irbo',
+    'iscf',
+    'isze',
+    'ita',
+    'itb',
+    'itot',
+    'iusg',
+    'iusv',
+    'ive',
+    'ivlu',
+    'ivv',
+    'ivw',
+    'iwb',
+    'iwc',
+    'iwd',
+    'iwf',
+    'iwfh',
+    'iwl',
+    'iwm',
+    'iwn',
+    'iwo',
+    'iwp',
+    'iwr',
+    'iws',
+    'iwv',
+    'iwx',
+    'iwy',
+    'ixc',
+    'ixg',
+    'ixj',
+    'ixn',
+    'ixp',
+    'ixus',
+    'iyc',
+    'iye',
+    'iyf',
+    'iyg',
+    'iyh',
+    'iyj',
+    'iyk',
+    'iyld',
+    'iym',
+    'iyr',
+    'iyt',
+    'iyw',
+    'iyy',
+    'iyz',
+    'jkd',
+    'jke',
+    'jkf',
+    'jkg',
+    'jkh',
+    'jki',
+    'jkj',
+    'jkk',
+    'jkl',
+    'jpxn',
+    'jxi',
+    'ksa',
+    'kwt',
+    'kxi',
+    'ldem',
+    'lrgf',
+    'mchi',
+    'midf',
+    'mtum',
+    'mxi',
+    'oef',
+    'pff',
+    'pick',
+    'qat',
+    'qual',
+    'reet',
+    'rem',
+    'rez',
+    'ring',
+    'rxi',
+    'scj',
+    'scz',
+    'sdg',
+    'size',
+    'slvp',
+    'smin',
+    'smmd',
+    'smmv',
+    'soxx',
+    'stlg',
+    'stlv',
+    'susa',
+    'susl',
+    'tecb',
+    'thd',
+    'tok',
+    'tur',
+    'uae',
+    'urth',
+    'usmv',
+    'usrt',
+    'usxf',
+    'vegi',
+    'vlue',
+    'wood',
+    'wps',
+    'xjh',
+    'xt',
+    'xvv'
+]
 
 def get_fund_file(symbol: str) -> str:
     """Convenience function that returns the URL for the specified `symbol`.
@@ -447,7 +671,7 @@ def get_fund_file(symbol: str) -> str:
     return f"https://www.ishares.com/us/products{funds_basepaths[symbol]}?fileType=csv&fileName={symbol.upper()}_holdings&dataType=fund"
 
 def fetch(  fund: str, 
-            headers: Mapping[str,str] = None) -> Union[None, Mapping[str, Mapping[str, float]]]:
+            headers: Mapping[str,str] = None) -> Mapping[str, Mapping[str, float]]:
     """Scrapes ishares.com for today's holdings data on the specified ETF.
 
     Parameters
@@ -457,13 +681,13 @@ def fetch(  fund: str,
     headers : Mapping[str,str], optional
         HTTP headers to pass to `urllib.request.Request`. 
         By default `{
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
         }`.
 
     Returns
     -------
-    Union[None, Mapping[str, Mapping[str, float]]]
-        Either None (if no data on the specified ETF was available on zacks.com),
+    Mapping[str, Mapping[str, float]]
+        Either an empty dictionary (if no data on the specified ETF was available on zacks.com),
         or a dictionary mapping a holding ticker (string) to a sub-dictionary mapping
         'weight' to the holding ticker's weight in the ETF.
     """
@@ -471,26 +695,35 @@ def fetch(  fund: str,
     assert fund in FUNDS
     if headers is None:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
         }
     fund_csv_url = get_fund_file(fund)
-    req = urllib.request.Request(
+    result: Mapping[str, float] = dict()
+    req = requests.get(
         fund_csv_url, 
         headers=headers
     )
-    res = urllib.request.urlopen(req)
-    data = csv.reader([l.decode("utf-8").strip() for l in res.readlines()])
-    for i in range(0, 10):
-        next(data)
-    result: Mapping[str, float] = dict()
-    for holding in data:
-        try:
-            ticker = holding[0]
-            weight = holding[5]
-            asset_class = holding[3]
-            if not ticker or not weight or not (asset_class == "Equity"):
-                continue
-            result[ticker] = result.get(ticker, 0) + float(weight)
-        except IndexError:
-            break
-    return {holding: {'weight':weight} for holding, weight in result.items()}
+    try:
+        req.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        # not a 200
+        print(f"Error: {e}")
+    else:
+        data = csv.reader(
+            req.content.decode("utf-8").split("\n")
+        )
+        
+        for _ in range(0, 10):
+            next(data)
+        for holding in data:
+            try:
+                ticker = holding[0]
+                weight = holding[5]
+                asset_class = holding[3]
+                if not ticker or not weight or not (asset_class == "Equity"):
+                    continue
+                result[ticker] = result.get(ticker, 0) + float(weight)
+            except IndexError:
+                break
+    finally:
+        return {holding: {'weight':weight} for holding, weight in result.items()}
