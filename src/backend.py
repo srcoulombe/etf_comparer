@@ -2,7 +2,7 @@
 import logging
 from typing import Union
 
-from dbms.PostgresDatabaseClient import PostgresDatabaseClient
+# external dependencies
 
 # local dependencies
 from .dbms.TinyDBDatabaseClient import TinyDBDatabaseClient
