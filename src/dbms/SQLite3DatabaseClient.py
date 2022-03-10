@@ -15,6 +15,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
                     connection_str: str = "data/etf.sqlite"):
         super().__init__(dbms = "sqlite3")
         self.__connection_str = connection_str 
+        self.__placeholder = '?'
         self.setup()
     
     @property

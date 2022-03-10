@@ -4,6 +4,7 @@ import logging
 import logging.config
 from io import BytesIO
 from typing import List
+from functools import partial
 
 # external dependencies
 import streamlit as st 
@@ -11,7 +12,7 @@ from streamlit_tags import st_tags
 
 # local dependencies
 from src.backend import select_database
-from src.utils import get_etf_holding_weight_vectors
+from src.utils import asymmetric_coverage_overlap, get_etf_holding_weight_vectors
 from src.plotting import plot_holdings_tracks, plot_similarity
 
 logging.config.fileConfig("loggingConfig.yml")
@@ -92,6 +93,37 @@ def run(user_input: str) -> None:
         )
         # plot the similarity matrix
         fig = plot_similarity(etfs_data, distance_measure='jaccard')
+        buf = BytesIO()
+        fig.savefig(buf, format="png")#, figsize=(4,4))
+        st.image(buf)
+    col1, col2 = st.columns([5,5])
+    with col1:
+        st.markdown(
+            "<h4 style='text-align: center; color: white;'>Asymmetric Coverage<br>(|A∩B|/|A|)</h4>", 
+            unsafe_allow_html = True
+        )
+        # plot the similarity matrix
+        fig = plot_similarity(
+            etfs_data, 
+            distance_measure=partial(asymmetric_coverage_overlap, swap_vectors=False),
+            xlabel="A",
+            ylabel="B"
+        )
+        buf = BytesIO()
+        fig.savefig(buf, format="png")#, figsize=(4,4))
+        st.image(buf)
+    with col2:
+        st.markdown(
+            "<h4 style='text-align: center; color: white;'>Asymmetric Coverage<br>(|B∩A|/|B|)</h4>", 
+            unsafe_allow_html = True
+        )
+        # plot the similarity matrix
+        fig = plot_similarity(
+            etfs_data, 
+            distance_measure=partial(asymmetric_coverage_overlap, swap_vectors=True),
+            xlabel="A",
+            ylabel="B"
+        )
         buf = BytesIO()
         fig.savefig(buf, format="png")#, figsize=(4,4))
         st.image(buf)

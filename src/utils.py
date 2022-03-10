@@ -179,7 +179,8 @@ def get_etf_holding_weight_vectors( query_output: Mapping[str, Mapping[str, Mapp
         return df
     return etfs_as_vectors
 
-def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]) -> float:
+def weighted_jaccard_distance(  vector1: Iterable[float], 
+                                vector2: Iterable[float]) -> float:
     """Convenience function implementing the weighted Jaccard Distance metric.
 
     Parameters
@@ -247,10 +248,59 @@ def weighted_jaccard_distance(vector1: Iterable[float], vector2: Iterable[float]
     # `numerator \ denominator` returns 
     return 1.0 - weighted_jaccard_similarity
 
+def asymmetric_coverage_overlap(vector1: Iterable[float], 
+                                vector2: Iterable[float],
+                                swap_vectors: bool = False) -> float:
+    """Returns the fraction of non-zero values in `vector1`
+    that were also non-zero in `vector2`.
+
+    Parameters
+    ----------
+    vector1 : Iterable[float]
+        An iterable of floats.
+        Presumed to be sorted in the same order as `vector2`.
+    vector2 : Iterable[float]
+        An iterable of floats.
+        Presumed to be sorted in the same order as `vector1`.
+    swap_vectors : bool, optional
+        Boolean indicating whether to swap the vectors and compute
+        sum(bool(vector2)*bool(vector1))/sum(bool(vector2))` (True), or
+        keep them as-is to compute
+        `sum(bool(vector1)*bool(vector2))/sum(bool(vector1))` (False).
+        Defaults to False
+        
+    Returns
+    -------
+    float
+        The fraction of non-zero values in `vector1` that were also non-zero in `vector2`
+    
+    Examples
+    --------
+    >>> v1 = [0,1,2,0]
+    >>> v2 = [2,1,1,1]
+    >>> assert asymmetric_coverage_overlap(v1,v2) == 1.0
+    >>> assert asymmetric_coverage_overlap(v2,v1) == 0.5
+    >>> assert asymmetric_coverage_overlap(v1,v2,swap_vectors=True) == 0.5
+    >>> assert asymmetric_coverage_overlap(v2,v1,swap_vectors=True) == 1
+    """
+    v1 = list(vector1)
+    v2 = list(vector2)
+    assert len(v1) == len(v2), \
+        "`asymmetric_coverage_overlap` is meant to be applied to vectors of equal lengths."
+    assert len(v1) > 0
+    assert len(v2) > 0
+    assert min(min(v1), min(v2)) >= 0, \
+        "`asymmetric_coverage_overlap` is meant to be used on vectors with values >= 0.0."
+    v1 = [v > 0 for v in v1]
+    v2 = [v > 0 for v in v2]
+    if swap_vectors:
+        v1, v2 = v2, v1
+    intersect = sum([v_1 * v_2 for v_1, v_2 in zip(v1,v2)])
+    return intersect / sum(v1)
+
 def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
                     distance_measure: Union[str,Callable] = jaccard) -> Mapping[Tuple[str,str], float]:
-    """Wrapper around the functions for the supported distance measures 
-    (Jaccard Distance, and weighted Jaccard Distance).
+    """Wrapper around the functions for the supported distance measures.
 
     Parameters
     ----------
@@ -262,8 +312,8 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'jaccard','weighted_jaccard'), or the function
-        itself. 
+        (must be one of 'asymmetric_coverage_overlap', 'jaccard', 'weighted_jaccard' if it is a string), 
+        or the function itself. 
         By default 'jaccard'
 
     Returns
@@ -285,15 +335,15 @@ def get_similarity( query_output: Mapping[str, Mapping[str, Mapping]],
     """
     if isinstance(distance_measure, str):
         distance_measure = distance_measure.lower()
-        assert distance_measure in ('jaccard','weighted_jaccard'), \
-            f"{distance_measure} is not among the supported distance measures ('jaccard', 'weighted_jaccard')"
+        assert distance_measure in ('jaccard','weighted_jaccard','asymmetric_coverage_overlap'), \
+            f"{distance_measure} is not among the supported distance measures ('jaccard', 'weighted_jaccard', 'asymmetric_coverage_overlap')"
         distance_measure_to_function = {
             'jaccard': jaccard,
-            'weighted_jaccard': weighted_jaccard_distance
+            'weighted_jaccard': weighted_jaccard_distance,
+            'asymmetric_coverage_overlap': asymmetric_coverage_overlap
         }
         distance_measure = distance_measure_to_function[distance_measure]
         
-    assert distance_measure in (jaccard, weighted_jaccard_distance)
     etfs_as_vectors = get_etf_holding_weight_vectors(
         query_output
     )

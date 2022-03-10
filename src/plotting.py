@@ -1,6 +1,7 @@
 # plotting.py 
 
 # standard library dependencies
+from functools import partial
 from typing import Mapping, List, Callable, Union
 
 # external dependencies
@@ -12,7 +13,13 @@ import matplotlib.colors as mcolors
 from scipy.spatial.distance import jaccard
 
 # local dependencies
-from .utils import get_etf_holding_weight_vectors, get_contiguous_truthy_segments, get_similarity
+from .utils import (
+    get_etf_holding_weight_vectors, 
+    get_contiguous_truthy_segments, 
+    get_similarity, 
+    weighted_jaccard_distance,
+    asymmetric_coverage_overlap
+)
 
 plt.style.use('classic')
 plt.rcParams.update({
@@ -138,7 +145,9 @@ def plot_holdings_tracks(query_output: Mapping[str, Mapping[str, Mapping]]) -> p
     return fig
 
 def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
-                    distance_measure: Union[str,Callable] = jaccard) -> plt.Figure:
+                    distance_measure: Union[str,Callable] = jaccard,
+                    xlabel: str = None, 
+                    ylabel: str = None) -> plt.Figure:
     """Plots the annotated heatmap indicating the distance between each ETF.
 
     Parameters
@@ -151,9 +160,15 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         `src.dbms.SQLDatabaseClient` or `src.dbms.TinyDBDatabaseClient`.
     distance_measure : Union[str,Callable], optional
         Either the string indicating which distance metric to use 
-        (must be one of 'jaccard','weighted_jaccard'), or the function
+        (must be one of 'jaccard','weighted_jaccard','asymmetric_coverage_overlap'), or the function
         itself. 
-        By default jaccard
+        By default jaccard.
+    xlabel : str, optional
+        String to use as x-axis label.
+        By default None.
+    ylabel : str, optional
+        String to use as y-axis label.
+        By default None.
 
     Returns
     -------
@@ -207,5 +222,7 @@ def plot_similarity(query_output: Mapping[str, Mapping[str, Mapping]],
         labelsize=12, 
         labelcolor='white'
     )
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     plt.tight_layout()
     return fig
