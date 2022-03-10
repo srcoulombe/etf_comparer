@@ -36,7 +36,7 @@ but **the main takeaway is that an ETF is a collection of assets (formally refer
 
 backend_option = st.selectbox(
     'Choose the database management system to use in the back end:',
-    ('TinyDB','SQLite3')
+    ('TinyDB','SQLite3','Postgres')
 )
 st.write('Using:', backend_option)
 
