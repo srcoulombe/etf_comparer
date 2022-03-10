@@ -692,6 +692,7 @@ def fetch(  fund: str,
         'weight' to the holding ticker's weight in the ETF.
     """
     global FUNDS
+    fund = fund.lower()
     assert fund in FUNDS
     if headers is None:
         headers = {
