@@ -193,7 +193,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
 
             try:
                 self.execute_query_over_many_arguments(
-                    f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder} );",
+                    f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder}) ON CONFLICT (Holding) DO NOTHING;",
                     holding_tickers
                 )
             except Exception as already_exists:
@@ -209,7 +209,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             # NOTE: if this raises an exception, we stop immediately
             try:
                 self.execute_query(
-                    f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder});",
+                    f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
                     (etf_ticker,)
                 )
                 print(f"successfully inserted {etf_ticker} into etf_ticker_table")
