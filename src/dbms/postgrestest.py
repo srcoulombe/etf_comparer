@@ -129,7 +129,6 @@ class PostgresDatabaseClient(SQLDatabaseClient):
         return results if get_results else None
 
     @lru_cache(maxsize = None)
-    @lru_cache(maxsize = None)
     def get_holdings_and_weights_for_etf(   self, 
                                             etf_ticker: str,
                                             date_: date = None) -> List[Tuple[datetime.date, str, str, float]]:  
@@ -166,7 +165,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             date_ = self.today
         if date_ > self.today:
             raise ValueError(f"Unable to fetch data from {date_}; Functionality to look into the future is not supported yet.")
-
+        etf_ticker = etf_ticker.upper()
         # first check if we already have data for the ETF
         try:
             etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
@@ -192,10 +191,12 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
 
             try:
+                print("Inserting holding tickers.")
                 self.execute_query_over_many_arguments(
                     f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder}) ON CONFLICT (Holding) DO NOTHING;",
                     holding_tickers
                 )
+                print("Inserted holding tickers.")
             except Exception as already_exists:
                 print(already_exists)
 
@@ -208,6 +209,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             # then insert `etf_ticker` into `etf_ticker_table`
             # NOTE: if this raises an exception, we stop immediately
             try:
+                print("Inserting etf ticker.")
                 self.execute_query(
                     f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
                     (etf_ticker,)
@@ -222,6 +224,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                     for holding_dict in etf_holdings.values()
                 ]
                 try:
+                    print("Inserting into etf_holdings_table.")
                     # parameters to insert the scraped data into `etf_holdings_table`
                     self.execute_query_over_many_arguments(
                         f"""INSERT INTO etf_holdings_table 
@@ -230,6 +233,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                         """,
                         holdings
                     )
+                    print("Inserted into etf_holdings_table.")
                 except Exception as e:
                     print(e)
                     self.execute_query(
