@@ -168,7 +168,8 @@ class SQLDatabaseClient(abc.ABC):
             date_ = self.today
         if date_ > self.today:
             raise ValueError(f"Unable to fetch data from {date_}; Functionality to look into the future is not supported yet.")
-            
+        etf_ticker = etf_ticker.upper()
+        
         try:
             etf_id = self.get_etf_id_for_ticker(etf_ticker)
             holdings: List[Tuple[datetime.date, str, str, float]] = self.execute_query(
