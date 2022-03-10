@@ -1,5 +1,6 @@
 # standard library dependencies
-from typing import List, Tuple, Mapping
+from typing import Mapping
+from datetime import datetime
 
 # local dependencies
 from .ishares_scraper import FUNDS as ishares_etf_tickers
@@ -33,6 +34,7 @@ def scrape_etf_holdings(etf: str) -> Mapping[str, Mapping[str, float]]:
     """
     etf = etf.upper()
     source = "zack"
+    start_time = datetime.now()
     try:
         if etf in ishares_etf_tickers:
             print("Using ishares scraper")
@@ -57,4 +59,5 @@ def scrape_etf_holdings(etf: str) -> Mapping[str, Mapping[str, float]]:
     except AssertionError as no_data:
         print(f"Found no data for ETF: {etf} (source: {source})")
         raise no_data
+    print(f"Scraping took {datetime.now() - start_time}")
     return etf_holdings_and_weights
