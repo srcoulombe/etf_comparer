@@ -114,7 +114,6 @@ class PostgresDatabaseClient(SQLDatabaseClient):
         # https://stackoverflow.com/questions/8134602/psycopg2-insert-multiple-rows-with-one-query
         results: List[Any] = []
         for arg in args:
-        for arg in args:
             with psycopg2.connect(
                 host=self.__credentials['ENDPOINT'], 
                 port=self.__credentials['PORT'], 
