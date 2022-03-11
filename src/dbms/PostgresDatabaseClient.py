@@ -159,7 +159,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
         query = f"""SELECT major.Date, minor.ETF_ticker, other.Holding, major.Holding_Weight 
         FROM (
             select etf_holdings_table.* from etf_holdings_table where ETF_ticker_ID = {self.__placeholder} 
-            and Date = {self.__placeholder} 
+            and Date = '{self.__placeholder}'
         ) as major 
         INNER JOIN etf_ticker_table as minor on major.ETF_ticker_ID = minor.ETF_ticker_ID 
         LEFT JOIN holdings_table as other on major.Holding_ID = other.Holding_ID;
