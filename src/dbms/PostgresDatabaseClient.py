@@ -134,8 +134,26 @@ class PostgresDatabaseClient(SQLDatabaseClient):
     def insert_etf_holding_data(self,
                                 etf_ticker: str,
                                 etf_holdings: Mapping[str, Mapping[str, float]]) -> Union[None,List[Tuple[datetime.date, str, str, float]]]:
-        if len(etf_holdings) == 0:
-            print("PostgresDatabaseClient.insert_data was given an empty mapping; No updates to be made.")
+        """Method handling everything required to handle the data
+        scraped for the specified ETF and insert it into the database.
+
+        Parameters
+        ----------
+        etf_ticker : str
+            ETF of interest.
+        etf_holdings: Mapping[str, Mapping[str, float]]
+            The holdings data that was scraped for the ETF.
+        
+        Returns
+        -------
+        Union[None,List[Tuple[datetime.date, str, str, float]]]
+            Either None (if no scraping data was provided) or the
+            list of holdings records for the ETF.
+        """
+        try:
+            assert len(etf_holdings) > 0
+        except AssertionError as ae:
+            logger.warning("PostgresDatabaseClient.insert_data was given an empty mapping; No updates to be made.")
             return None
             
         etf_ticker = etf_ticker.upper()
@@ -170,7 +188,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                 f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
                 (etf_ticker,)
             )
-            logger.info(f"successfully inserted {etf_ticker} into etf_ticker_table")
+            logger.info(f"Successfully inserted {etf_ticker} into etf_ticker_table")
             etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
         except Exception as error:
             raise error
@@ -192,6 +210,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             logger.info("Inserted into etf_holdings_table.")
         except Exception as e:
             logger.warning(e)
+            # TODO: consider replacing this with a rollback 
             self.execute_query(
                 f"DELETE FROM etf_ticker_table WHERE ETF_ticker = {self.__placeholder};",
                 etf_ticker

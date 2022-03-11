@@ -69,6 +69,99 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
             )
         return cur.fetchall()
 
+    def insert_etf_holding_data(self,
+                                etf_ticker: str,
+                                etf_holdings: Mapping[str, Mapping[str, float]]) -> Union[None,List[Tuple[datetime.date, str, str, float]]]:
+        """Method handling everything required to handle the data
+        scraped for the specified ETF and insert it into the database.
+
+        Parameters
+        ----------
+        etf_ticker : str
+            ETF of interest.
+        etf_holdings: Mapping[str, Mapping[str, float]]
+            The holdings data that was scraped for the ETF.
+        
+        Returns
+        -------
+        Union[None,List[Tuple[datetime.date, str, str, float]]]
+            Either None (if no scraping data was provided) or the
+            list of holdings records for the ETF.
+        """
+        try:
+            assert len(etf_holdings) > 0
+        except AssertionError as ae:
+            logger.warning("SQLite3DatabaseClient.insert_data was given an empty mapping; No updates to be made.")
+            return None
+        
+        etf_ticker = etf_ticker.upper()
+        holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
+        
+        # NOTE: this insertion operation doesn't require cleanup if the method
+        #       raises an exception afterwards; having more holding tickers in 
+        #       `holding_table` is actually advantageous
+        try:
+            logger.info("Inserting holding tickers.")
+            self.execute_query_over_many_arguments(
+                f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder} );",
+                holding_tickers
+            )
+            logger.info("Inserted holding tickers.")
+        except Exception as already_exists:
+            logger.warning(already_exists)
+            
+        # OK we can't use executemany for `select` queries like
+        # holding_tickers_and_id = self.execute_query_over_many_arguments(
+        #     "select * from holdings_table where Holding = (%s)",
+        #     holding_tickers
+        # )
+        # so we'll need to loop over them
+        for (holding_ticker, ) in holding_tickers:
+            holding_id: int = self.get_holding_id_for_ticker(holding_ticker)
+            # keeping `holding_ticker` and `holding_ticker_id` together is
+            # useful for future reference
+            etf_holdings[holding_ticker]['holding_ticker_id'] = holding_id
+
+        try:
+            logger.info("Inserting etf ticker.")
+            self.execute_query(
+                #"insert or ignore into etf_ticker_table (ETF_ticker) values (%s);",
+                f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder});",
+                (etf_ticker,)
+            )
+            logger.info(f"Successfully inserted {etf_ticker} into etf_ticker_table")
+        except Exception as already_exists:
+            # NOTE: we can't use ON CONFLICT IGNORE with SQLite3
+            #       so we just log the exception
+            logger.warning(already_exists)
+
+        etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
+
+        holdings = [
+            (self.today, etf_ticker_id, holding_dict['holding_ticker_id'], holding_dict['weight'])
+            for holding_dict in etf_holdings.values()
+        ]
+        try:
+            logger.info("Inserting into etf_holdings_table.")
+            self.execute_query_over_many_arguments(
+                f"""INSERT INTO etf_holdings_table 
+                (Date, ETF_ticker_ID, Holding_ID, Holding_Weight)
+                VALUES ({self.__placeholder}, {self.__placeholder}, {self.__placeholder}, {self.__placeholder});
+                """,
+                holdings
+            )
+            logger.info("Inserted into etf_holdings_table.")
+        except Exception as error_in_insertion:
+            self.execute_query(
+                f"DELETE FROM etf_ticker_table WHERE ETF_ticker = %{self.__placeholder};",
+                (etf_ticker,)
+            )
+            logger.warning(f"Caught error in inserting {etf_ticker} in `etf_holdings_table`: {error_in_insertion}")
+
+        finally:
+            return holdings
+
+
     @lru_cache(maxsize = None)
     def get_holdings_and_weights_for_etf(   self, 
                                             etf_ticker: str,
@@ -146,72 +239,12 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
                 )
 
             # scrape today's data for the ETF's holdings
-            etf_holdings: Mapping[str, Mapping[str, float]] = scrape_etf_holdings(etf_ticker)
-            assert len(etf_holdings) > 0
-            
-            holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
-            
-            # NOTE: this insertion operation doesn't require cleanup if the method
-            #       raises an exception afterwards; having more holding tickers in 
-            #       `holding_table` is actually advantageous
-            try:
-                self.execute_query_over_many_arguments(
-                    f"insert into holdings_table (Holding) values ({self.__placeholder} );",
-                    holding_tickers
-                )
-            except Exception as already_exists:
-                logger.warning(already_exists)
-                
-            # OK we can't use executemany for `select` queries like
-            # holding_tickers_and_id = self.execute_query_over_many_arguments(
-            #     "select * from holdings_table where Holding = (%s)",
-            #     holding_tickers
-            # )
-            # so we'll need to loop over them
-            for (holding_ticker, ) in holding_tickers:
-                holding_id: int = self.get_holding_id_for_ticker(holding_ticker)
-                # keeping `holding_ticker` and `holding_ticker_id` together is
-                # useful for future reference
-                etf_holdings[holding_ticker]['holding_ticker_id'] = holding_id
-
-            try:
-                self.execute_query(
-                    #"insert or ignore into etf_ticker_table (ETF_ticker) values (%s);",
-                    f"insert into etf_ticker_table (ETF_ticker) values ({self.__placeholder});",
-                    (etf_ticker,)
-                )
-            except Exception as already_exists:
-                # log
-                logger.warning(already_exists)
-
-            etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
-
-            params = [
-                (self.today, etf_ticker_id, holding_dict['holding_ticker_id'], holding_dict['weight'])
-                for holding_dict in etf_holdings.values()
-            ]
-            try:
-                self.execute_query_over_many_arguments(
-                    f"""insert into etf_holdings_table 
-                    (Date, ETF_ticker_ID, Holding_ID, Holding_Weight)
-                    values ({self.__placeholder}, {self.__placeholder}, {self.__placeholder}, {self.__placeholder});
-                    """,
-                    params
-                )
-            except Exception as error_in_insertion:
-                # log
-                self.execute_query(
-                    f"DELETE FROM etf_ticker_table WHERE ETF_ticker = %{self.__placeholder};",
-                    (etf_ticker,)
-                )
-                logger.warning(f"Caught error in inserting {etf_ticker} in `etf_holdings_table`: {error_in_insertion}")
-
-            else:
-                holdings: List[Tuple[datetime.date, str, str, float]] = self.execute_query(
-                    query, 
-                    (etf_ticker_id, self.today)
-                )
-        return holdings
+            holdings: Mapping[str, Mapping[str, float]] = self.insert_etf_holding_data(
+                etf_ticker, 
+                scrape_etf_holdings(etf_ticker)
+            )
+        finally:
+            return holdings
 
 
         
