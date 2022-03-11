@@ -248,6 +248,6 @@ class PostgresDatabaseClient(SQLDatabaseClient):
         else:
             holdings: List[Tuple[datetime.date, str, str, float]] = self.execute_query(
                 query, 
-                (etf_ticker_id, self.today)
+                (etf_ticker_id, date_)
             )
         return holdings
