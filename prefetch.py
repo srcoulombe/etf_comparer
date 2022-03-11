@@ -2,52 +2,79 @@
 
 # standard library dependencies
 import time
+import logging
+
 from datetime import datetime, date
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
 # external dependencies
 
 # local dependencies
 from src.dbms.PostgresDatabaseClient import PostgresDatabaseClient
 
 def prefetch_etf_data(etf: str) -> bool:
-    print(f"Pre-fetching data for {etf}")
+    """Convenience function that creates a PostgresDatabaseClient
+    and calls its `.get_holdings_and_weights_for_etf` method to
+    scrape and insert the latest holdings data for the provided etf.
+
+    Parameters
+    ----------
+    etf : str
+        Ticker for the etf of interest.
+
+    Returns
+    -------
+    bool : Boolean confirming whether the operation has been executed
+           successfully (True) or not (False).
+    
+    """
+    logging.info(f"Pre-fetching data for {etf}")
     pdc = PostgresDatabaseClient("aws_credentials.json")
     try:
         _ = pdc.get_holdings_and_weights_for_etf(etf.upper())
     except Exception as e:
-        print(f"Got an exception when pre-fetching data for {etf}: {e}")
+        logging.error(f"Got an exception when pre-fetching data for {etf}: {e}")
         return False
     else:
-        print(f"Successfully pre-fetched data for {etf}")
+        logging.info(f"Successfully pre-fetched data for {etf}")
         return True
 
 def get_latest_update() -> date:
-    print(f"Getting latest update date")
+    """Convenience function to fetch the latest date present in the 
+    `etf_holdings_table` table of the Postgres database."""
+    logging.info(f"Getting latest update date")
     pdc = PostgresDatabaseClient("aws_credentials.json")
     latest = pdc.execute_query("SELECT MAX(Date) FROM etf_holdings_table;")[0][0]
-    print(f"Latest update date: {latest}")
+    logging.info(f"Latest update date: {latest}")
     return latest
 
-if __name__ == '__main__':
-
+def prefetch() -> None:
     last_update = get_latest_update()
     while True:
         day = datetime.now().day
-        print(last_update, day)
+        #print(last_update, day)
         if day != last_update:
             last_update = day
             # get known etfs
             pdc = PostgresDatabaseClient("aws_credentials.json")
             known_etfs = pdc.get_known_etfs()
-            print(f"Pre-fetching data for {len(known_etfs)} ETFs")
+            logging.info(f"Pre-fetching data for {len(known_etfs)} ETFs")
             with ThreadPoolExecutor(max_workers=8) as pool:
                 future_to_outcome = {pool.submit(prefetch_etf_data, etf): etf for etf in known_etfs}
                 for future in as_completed(future_to_outcome):
                     etf = future_to_outcome[future]
                     try:
                         data = future.result()
-                    except Exception as e:
-                        print(f'Pre-fetching data for {etf} generated an exception: {e}')
+                        assert data
+                    except (Exception, AssertionError) as e:
+                        logging.error(f'Pre-fetching data for {etf} generated an exception: {e}')
                     else:
-                        print(f'Successfully pre-fetched data for {etf}')
+                        logging.info(f'Prefetch operation for {etf} concluded successfully: {data}')
+            logging.info("Concluded prefetch operations for all {len(known_etfs)} known etfs; hibernating for 1 hour.")
+        else:
+            logging.info("No need for prefetching as of now; hibernating for 1 hour.")
         time.sleep(int(60*60))
+
+if __name__ == '__main__':
+    logging.basicConfig(format='[%(asctime)s] - %(levelname)s:%(message)s', level=logging.INFO)
+    prefetch()
