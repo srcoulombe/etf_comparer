@@ -41,14 +41,40 @@ def prefetch_etf_data(etf: str) -> bool:
 
 def get_latest_update() -> date:
     """Convenience function to fetch the latest date present in the 
-    `etf_holdings_table` table of the Postgres database."""
+    `etf_holdings_table` table of the Postgres database.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    date : latest date present in the `etf_holdings_table` table of the Postgres database.
+    """
     logging.info(f"Getting latest update date")
     pdc = PostgresDatabaseClient("aws_credentials.json")
     latest = pdc.execute_query("SELECT MAX(Date) FROM etf_holdings_table;")[0][0]
     logging.info(f"Latest update date: {latest}")
     return latest
 
-def prefetch() -> None:
+def prefetch(hibernation_seconds: int = 60*60) -> None:
+    """Function that continuously checks the need to fetch
+    new ETF holdings data (for all known etfs in the Postgres database)
+    every `hibernation_seconds` seconds.
+
+    The fetching operation is only required to happen once per day.
+
+    Parameters
+    ----------
+    hibernation_seconds : int, optional
+        The number of seconds to wait before reconsidering whether new
+        data should be fetched. Defaults to 60*60 = 3600 (1 hour).
+
+    Returns
+    -------
+    None
+    """
+    hibernation_seconds = max(60*60, hibernation_seconds)
     last_update = get_latest_update()
     while True:
         day = datetime.now().day
@@ -73,7 +99,7 @@ def prefetch() -> None:
             logging.info("Concluded prefetch operations for all {len(known_etfs)} known etfs; hibernating for 1 hour.")
         else:
             logging.info("No need for prefetching as of now; hibernating for 1 hour.")
-        time.sleep(int(60*60))
+        time.sleep(int(hibernation_seconds))
 
 if __name__ == '__main__':
     logging.basicConfig(format='[%(asctime)s] - %(levelname)s:%(message)s', level=logging.INFO)
