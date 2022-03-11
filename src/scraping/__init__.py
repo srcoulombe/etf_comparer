@@ -1,4 +1,6 @@
 # standard library dependencies
+import logging
+logger = logging.getLogger(f"mainLogger.scrape_etf_holdings")
 from typing import Mapping
 from datetime import datetime
 
@@ -37,27 +39,27 @@ def scrape_etf_holdings(etf: str) -> Mapping[str, Mapping[str, float]]:
     start_time = datetime.now()
     try:
         if etf in ishares_etf_tickers:
-            print("Using ishares scraper")
+            logger.info(f"Using ishares scraper to fetch data for {etf}")
             source = "ishares"
             etf_holdings_and_weights = fetch_from_ishares(etf)
         elif etf in ark_etf_tickers:
-            print("Using ark scraper")
+            logger.info(f"Using ark scraper to fetch data for {etf}")
             source = "ark"
             etf_holdings_and_weights = fetch_from_ark(etf)
         elif etf in invesco_etf_tickers:
-            print("Using invesco scraper")
+            logger.info(f"Using invesco scraper to fetch data for {etf}")
             source = "invesco"
             etf_holdings_and_weights = fetch_from_invesco(etf)
         else:
-            print("Using zacks.com scraper")
+            logger.info(f"Using zacks.com scraper to fetch data for {etf}")
             etf_holdings_and_weights = fetch_from_zack(etf)
     except Exception as e:
-        print(f"getting updated holdings for ETF: {etf} raised {e}")
+        logger.info(f"Getting updated holdings for ETF: {etf} raised {e}")
         raise e
     try:
         assert len(etf_holdings_and_weights) > 0
     except AssertionError as no_data:
-        print(f"Found no data for ETF: {etf} (source: {source})")
+        logger.info(f"Found no data for ETF: {etf} (source: {source})")
         raise no_data
-    print(f"Scraping took {datetime.now() - start_time}")
+    logger.info(f"Scraping took {datetime.now() - start_time}")
     return etf_holdings_and_weights

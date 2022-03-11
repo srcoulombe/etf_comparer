@@ -1,6 +1,7 @@
 # standard library dependencies
-# standard library dependencies
 import json
+import logging
+logger = logging.getLogger(f"mainLogger.PostgresDatabaseClient")
 import datetime
 from datetime import date
 from functools import lru_cache
@@ -180,7 +181,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             # 4. insert the scraped data into the `etf_holdings_table`.
             # NOTE: if 3 or 4 raise an exception, we crash
 
-            print(no_current_data_for_etf)
+            logger.warning(no_current_data_for_etf)
             # 
             etf_holdings: Mapping[str, Mapping[str, float]] = scrape_etf_holdings(etf_ticker)
             assert len(etf_holdings) > 0, \
@@ -193,14 +194,14 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
 
             try:
-                print("Inserting holding tickers.")
+                logger.info("Inserting holding tickers.")
                 self.execute_query_over_many_arguments(
                     f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder}) ON CONFLICT (Holding) DO NOTHING;",
                     holding_tickers
                 )
-                print("Inserted holding tickers.")
+                logger.info("Inserted holding tickers.")
             except Exception as already_exists:
-                print(already_exists)
+                logger.warning(already_exists)
 
             for (holding_ticker,) in holding_tickers:
                 holding_id: int = self.get_holding_id_for_ticker(holding_ticker)
@@ -211,12 +212,12 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             # then insert `etf_ticker` into `etf_ticker_table`
             # NOTE: if this raises an exception, we stop immediately
             try:
-                print("Inserting etf ticker.")
+                logger.info("Inserting etf ticker.")
                 self.execute_query(
                     f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
                     (etf_ticker,)
                 )
-                print(f"successfully inserted {etf_ticker} into etf_ticker_table")
+                logger.info(f"successfully inserted {etf_ticker} into etf_ticker_table")
                 etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
             except Exception as error:
                 raise error
@@ -226,7 +227,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                     for holding_dict in etf_holdings.values()
                 ]
                 try:
-                    print("Inserting into etf_holdings_table.")
+                    logger.info("Inserting into etf_holdings_table.")
                     # parameters to insert the scraped data into `etf_holdings_table`
                     self.execute_query_over_many_arguments(
                         f"""INSERT INTO etf_holdings_table 
@@ -235,9 +236,9 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                         """,
                         holdings
                     )
-                    print("Inserted into etf_holdings_table.")
+                    logger.info("Inserted into etf_holdings_table.")
                 except Exception as e:
-                    print(e)
+                    logger.warning(e)
                     self.execute_query(
                         f"DELETE FROM etf_ticker_table WHERE ETF_ticker = {self.__placeholder};",
                         etf_ticker

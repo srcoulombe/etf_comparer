@@ -1,5 +1,6 @@
 # standard library dependencies
 import logging
+log = logging.getLogger(f"mainLogger.{__name__}")
 from typing import Union
 
 # external dependencies
@@ -26,8 +27,6 @@ def select_database(db_type: str) -> Union[TinyDBDatabaseClient, SQLite3Database
         in the backend
 
     """
-    log = logging.getLogger("root")
-
     db_type = db_type.lower()
     if not db_type in ('tinydb','sqlite3','postgres'):
         log.error(f"`db_type` argument for `select_database` must be in ('tinydb','sqlite3'); got {db_type}. Reverting back to {db_type}.")

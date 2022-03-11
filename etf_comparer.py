@@ -2,6 +2,12 @@
 # standard library dependencies
 import logging
 import logging.config
+
+logging.config.fileConfig("loggingConfig.yml")
+logger = logging.getLogger(f"mainLogger")
+logging.info("Initiating Streamlit app")
+logger.info("Initiating Streamlit app")
+
 from io import BytesIO
 from typing import List
 from functools import partial
@@ -14,10 +20,6 @@ from streamlit_tags import st_tags
 from src.backend import select_database
 from src.utils import asymmetric_coverage_overlap, get_etf_holding_weight_vectors
 from src.plotting import plot_holdings_tracks, plot_similarity
-
-logging.config.fileConfig("loggingConfig.yml")
-
-logging.info("Initiating Streamlit app")
 
 st.set_page_config(layout='centered')
 
@@ -41,7 +43,7 @@ backend_option = st.selectbox(
 st.write('Using:', backend_option)
 
 dbc = select_database(backend_option)
-logging.info(f"Connected to {backend_option} client instance")
+logger.info(f"Connected to {backend_option} client instance")
 
 @st.cache 
 def clean_user_data(user_input: List[str]) -> List[str]:    
@@ -52,27 +54,27 @@ def clean_user_data(user_input: List[str]) -> List[str]:
     ]
 
 def run(user_input: str) -> None:
-    logging.info(f'Loading data for: {user_input}')
+    logger.info(f'Loading data for: {user_input}')
     etfs_data, unavailable_etfs = dbc.get_holdings_and_weights_for_etfs(
         clean_user_data(user_input)[:10]
     )
     if len(unavailable_etfs) > 0:
         warning = f"Failed to fetch data for the following ETFs: {', '.join(unavailable_etfs)}"
-        logging.warning(warning)
+        logger.warning(warning)
         st.warning(warning)
 
-    logging.info(f'Loaded data for: {user_input}')
-    logging.info(f'Processing data for: {user_input}')
+    logger.info(f'Loaded data for: {user_input}')
+    logger.info(f'Processing data for: {user_input}')
     
     st.pyplot(plot_holdings_tracks(etfs_data), dpi=1000)
     
-    logging.info(f'Processed data for: {user_input}')
+    logger.info(f'Processed data for: {user_input}')
 
-    logging.info(f'Calculating similarities between: {user_input}')
+    logger.info(f'Calculating similarities between: {user_input}')
 
-    logging.info(f'Processed data for: {user_input}')
+    logger.info(f'Processed data for: {user_input}')
 
-    logging.info(f'Calculating similarities between: {user_input}')
+    logger.info(f'Calculating similarities between: {user_input}')
 
     # plot the similarity matrices
     col1, col2 = st.columns([5,5])
@@ -128,15 +130,15 @@ def run(user_input: str) -> None:
         fig.savefig(buf, format="png")#, figsize=(4,4))
         st.image(buf)
     
-    logging.info(f'Calculated similarities between: {user_input}')
-    logging.info(f'Re-fetching data for: {user_input}')
-    logging.info(f'Calculated similarities between: {user_input}')
-    logging.info(f'Re-fetching data for: {user_input}')
+    logger.info(f'Calculated similarities between: {user_input}')
+    logger.info(f'Re-fetching data for: {user_input}')
+    logger.info(f'Calculated similarities between: {user_input}')
+    logger.info(f'Re-fetching data for: {user_input}')
     data = get_etf_holding_weight_vectors(
         etfs_data, 
         as_df = True
     )
-    logging.info(f'Re-fetched data for: {user_input}')
+    logger.info(f'Re-fetched data for: {user_input}')
     
     st.subheader("Data")
     with st.expander("Show Data"):

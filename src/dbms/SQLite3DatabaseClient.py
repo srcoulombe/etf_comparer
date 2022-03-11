@@ -1,5 +1,7 @@
 # standard library dependencies
 import sqlite3
+import logging 
+logger = logging.getLogger(f"mainLogger.SQLite3DatabaseClient")
 import datetime
 from datetime import date
 from functools import lru_cache
@@ -124,7 +126,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
             # this could happen if the process of inserting data
             # on the ETF's holdings was interrupted
             if isinstance(no_current_data_for_etf, AssertionError):
-                print(f"Holdings for ETF '{etf_ticker}' were incomplete; updating...")
+                logger.warning(f"Holdings for ETF '{etf_ticker}' were incomplete; updating...")
                 
                 # do some database cleanup
                 # clean up etf_holdings_table before repeating the insertion process
@@ -158,7 +160,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
                     holding_tickers
                 )
             except Exception as already_exists:
-                print(already_exists)
+                logger.warning(already_exists)
                 
             # OK we can't use executemany for `select` queries like
             # holding_tickers_and_id = self.execute_query_over_many_arguments(
@@ -180,7 +182,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
                 )
             except Exception as already_exists:
                 # log
-                print(already_exists)
+                logger.warning(already_exists)
 
             etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
 
@@ -202,7 +204,7 @@ class SQLite3DatabaseClient(SQLDatabaseClient):
                     f"DELETE FROM etf_ticker_table WHERE ETF_ticker = %{self.__placeholder};",
                     (etf_ticker,)
                 )
-                print(f"Caught error in inserting {etf_ticker} in `etf_holdings_table`: {error_in_insertion}")
+                logger.warning(f"Caught error in inserting {etf_ticker} in `etf_holdings_table`: {error_in_insertion}")
 
             else:
                 holdings: List[Tuple[datetime.date, str, str, float]] = self.execute_query(

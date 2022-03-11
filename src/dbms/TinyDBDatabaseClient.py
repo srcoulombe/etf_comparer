@@ -1,4 +1,6 @@
 # standard library dependencies
+import logging
+logger = logging.getLogger(f"mainLogger.TinyDBDatabaseClient")
 from functools import lru_cache
 from datetime import datetime, date
 from typing import Iterable, Mapping, List, Tuple
@@ -62,12 +64,13 @@ class TinyDBDatabaseClient:
             if date_ != self.today:
                 raise ValueError(f"No data is available for {etf_name} on {date_}")
             try:
+                
                 etf_holdings = scrape_etf_holdings(etf_name)
                 assert etf_holdings is not None
                 assert len(etf_holdings) > 0
             except Exception as e:
                 message = f"Unable to fetch data for {etf_name}; {e}"
-                print(message)
+                logger.warning(message)
                 raise ValueError(message) from e
             else:
                 self.db.insert({
@@ -121,7 +124,7 @@ class TinyDBDatabaseClient:
                 etfs_holdings[etf] = data
             except Exception as e:
                 # log
-                print(e)
+                logger.warning(e)
                 unavailable_etfs.append(etf)
         return {k:d for k,d in etfs_holdings.items() if len(d) > 0}, unavailable_etfs
 
