@@ -88,20 +88,6 @@ class Query:
             )
             for etf_holding in etf_holdings
         ]
-        """
-        holdings = [
-            HoldingData(
-                holding_ticker = "ABC",
-                date = "2022-22-22",
-                weight = 0.1
-            ),
-            HoldingData(
-                holding_ticker = "XYZ",
-                date = "2022-22-22",
-                weight = 0.21
-            )
-        ]
-        """
         return ETF(ticker=etf_ticker, holdings=holdings)
 
 schema = strawberry.Schema(query=Query)
