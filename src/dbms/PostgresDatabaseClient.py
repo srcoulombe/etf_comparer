@@ -131,6 +131,74 @@ class PostgresDatabaseClient(SQLDatabaseClient):
                     results.append(cur.fetchall())
         return results if get_results else None
 
+    def insert_etf_holding_data(self,
+                                etf_ticker: str,
+                                etf_holdings: Mapping[str, Mapping[str, float]]) -> Union[None,List[Tuple[datetime.date, str, str, float]]]:
+        if len(etf_holdings) == 0:
+            print("PostgresDatabaseClient.insert_data was given an empty mapping; No updates to be made.")
+            return None
+            
+        etf_ticker = etf_ticker.upper()
+
+        # make sure the holdings we scraped are included in `holdings_table`
+        # NOTE: this insertion operation doesn't require cleanup if the method
+        #       raises an exception afterwards; having more holding tickers in 
+        #       `holdings_table` is actually advantageous 
+        holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
+
+        try:
+            logger.info("Inserting holding tickers.")
+            self.execute_query_over_many_arguments(
+                f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder}) ON CONFLICT (Holding) DO NOTHING;",
+                holding_tickers
+            )
+            logger.info("Inserted holding tickers.")
+        except Exception as already_exists:
+            logger.warning(already_exists)
+
+        for (holding_ticker,) in holding_tickers:
+            holding_id: int = self.get_holding_id_for_ticker(holding_ticker)
+            # keeping `holding_ticker` and `holding_ticker_id` together is
+            # useful for future reference
+            etf_holdings[holding_ticker]['holding_ticker_id'] = holding_id
+
+        # then we insert `etf_ticker` into `etf_ticker_table`
+        # NOTE: if this raises an exception, we stop immediately
+        try:
+            logger.info("Inserting etf ticker.")
+            self.execute_query(
+                f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
+                (etf_ticker,)
+            )
+            logger.info(f"successfully inserted {etf_ticker} into etf_ticker_table")
+            etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
+        except Exception as error:
+            raise error
+        
+        holdings = [
+            (self.today, etf_ticker_id, holding_dict['holding_ticker_id'], holding_dict['weight'])
+            for holding_dict in etf_holdings.values()
+        ]
+        try:
+            logger.info("Inserting into etf_holdings_table.")
+            # parameters to insert the scraped data into `etf_holdings_table`
+            self.execute_query_over_many_arguments(
+                f"""INSERT INTO etf_holdings_table 
+                (Date, ETF_ticker_ID, Holding_ID, Holding_Weight)
+                VALUES ({self.__placeholder}, {self.__placeholder}, {self.__placeholder}, {self.__placeholder});
+                """,
+                holdings
+            )
+            logger.info("Inserted into etf_holdings_table.")
+        except Exception as e:
+            logger.warning(e)
+            self.execute_query(
+                f"DELETE FROM etf_ticker_table WHERE ETF_ticker = {self.__placeholder};",
+                etf_ticker
+            )
+        finally:
+            return holdings
+
     @lru_cache(maxsize = None)
     def get_holdings_and_weights_for_etf(   self, 
                                             etf_ticker: str,
@@ -164,6 +232,7 @@ class PostgresDatabaseClient(SQLDatabaseClient):
         INNER JOIN etf_ticker_table as minor on major.ETF_ticker_ID = minor.ETF_ticker_ID 
         LEFT JOIN holdings_table as other on major.Holding_ID = other.Holding_ID;
         """
+
         if date_ is None:
             date_ = self.today
         if date_ > self.today:
@@ -182,72 +251,29 @@ class PostgresDatabaseClient(SQLDatabaseClient):
             # NOTE: if 3 or 4 raise an exception, we crash
 
             logger.warning(no_current_data_for_etf)
-            # 
             etf_holdings: Mapping[str, Mapping[str, float]] = scrape_etf_holdings(etf_ticker)
             assert len(etf_holdings) > 0, \
                 f"Unable to fetch data for ETF {etf_ticker} on {self.today}"
 
-            # make sure the holdings we scraped are included in `holdings_table`
-            # NOTE: this insertion operation doesn't require cleanup if the method
-            #       raises an exception afterwards; having more holding tickers in 
-            #       `holdings_table` is actually advantageous 
-            holding_tickers = [ (holding, ) for holding in etf_holdings.keys() ]
-
-            try:
-                logger.info("Inserting holding tickers.")
-                self.execute_query_over_many_arguments(
-                    f"INSERT INTO holdings_table (Holding) VALUES ({self.__placeholder}) ON CONFLICT (Holding) DO NOTHING;",
-                    holding_tickers
-                )
-                logger.info("Inserted holding tickers.")
-            except Exception as already_exists:
-                logger.warning(already_exists)
-
-            for (holding_ticker,) in holding_tickers:
-                holding_id: int = self.get_holding_id_for_ticker(holding_ticker)
-                # keeping `holding_ticker` and `holding_ticker_id` together is
-                # useful for future reference
-                etf_holdings[holding_ticker]['holding_ticker_id'] = holding_id
-
-            # then insert `etf_ticker` into `etf_ticker_table`
-            # NOTE: if this raises an exception, we stop immediately
-            try:
-                logger.info("Inserting etf ticker.")
-                self.execute_query(
-                    f"INSERT INTO etf_ticker_table (ETF_ticker) VALUES ({self.__placeholder}) ON CONFLICT (ETF_ticker) DO NOTHING;",
-                    (etf_ticker,)
-                )
-                logger.info(f"successfully inserted {etf_ticker} into etf_ticker_table")
-                etf_ticker_id = self.get_etf_id_for_ticker(etf_ticker)
-            except Exception as error:
-                raise error
-            else:
-                holdings = [
-                    (self.today, etf_ticker_id, holding_dict['holding_ticker_id'], holding_dict['weight'])
-                    for holding_dict in etf_holdings.values()
-                ]
-                try:
-                    logger.info("Inserting into etf_holdings_table.")
-                    # parameters to insert the scraped data into `etf_holdings_table`
-                    self.execute_query_over_many_arguments(
-                        f"""INSERT INTO etf_holdings_table 
-                        (Date, ETF_ticker_ID, Holding_ID, Holding_Weight)
-                        VALUES ({self.__placeholder}, {self.__placeholder}, {self.__placeholder}, {self.__placeholder});
-                        """,
-                        holdings
-                    )
-                    logger.info("Inserted into etf_holdings_table.")
-                except Exception as e:
-                    logger.warning(e)
-                    self.execute_query(
-                        f"DELETE FROM etf_ticker_table WHERE ETF_ticker = {self.__placeholder};",
-                        etf_ticker
-                    )
-                finally:
-                    return holdings
+            holdings = self.insert_etf_holding_data(
+                etf_ticker.upper(), 
+                etf_holdings
+            )
         else:
             holdings: List[Tuple[datetime.date, str, str, float]] = self.execute_query(
                 query, 
                 (etf_ticker_id, date_)
             )
+            try:
+                assert len(holdings) > 0
+            except AssertionError as present_but_no_date:
+                logger.warning(f"{etf_ticker} was present in `ETF_ticker_table` but did not have any holdings data for {date_}; fetching holdings data now.")
+                # scrape data
+                etf_holdings: Mapping[str, Mapping[str, float]] = scrape_etf_holdings(etf_ticker)
+                assert len(etf_holdings) > 0, \
+                    f"Unable to fetch data for ETF {etf_ticker} on {self.today}"
+                holdings = self.insert_etf_holding_data(
+                    etf_ticker.upper(), 
+                    etf_holdings
+                )
         return holdings
