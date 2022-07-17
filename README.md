@@ -52,3 +52,9 @@ Some existing tools can be used for similar purposes as this project, but focus 
 
 
 Some projects like [`investpy`](https://investpy.readthedocs.io/) and the [GitHub repo `awesome-quant`](https://github.com/wilsonfreitas/awesome-quant#python) are more pertinent. ~~I'll be looking into `investpy`'s ETF scraping capabilities to see what I could learn and use~~. After having examined `investpy` more thoroughly, it does not seem to be in line with this project's direction.
+
+## Sources to look into:
+- etfchannel.com
+- etfdb.com/tool/etf-comparison
+- etfdb.com/screener
+
